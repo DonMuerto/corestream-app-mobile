@@ -268,6 +268,13 @@
                           <span class="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-2 py-1 text-[11px] text-[var(--text-secondary)]">
                             {{ epic.completedTickets }} {{ t('builderView.completed') }}
                           </span>
+                          <span
+                            v-if="epic.teamName"
+                            class="rounded-full border border-[var(--teal)]/40 bg-[var(--teal)]/10 px-2 py-1 text-[11px] font-medium text-[var(--teal)]"
+                            :title="t('builderView.epicTeamLabel')"
+                          >
+                            👥 {{ epic.teamName }}
+                          </span>
                         </div>
                         <p class="mt-1 max-w-3xl text-sm text-[var(--text-secondary)]">
                           {{ epic.description || t('builderView.epicNoDescription') }}
@@ -503,6 +510,39 @@
               <p class="mt-1 font-medium text-[var(--text-primary)]">{{ selectedApp?.name || t('builderView.noSelection') }}</p>
             </div>
           </div>
+          <div>
+            <label class="mb-1 block text-sm text-[var(--text-secondary)]">{{ t('builderView.epicTeamLabel') }}</label>
+            <div class="flex gap-2">
+              <select
+                v-if="!creatingNewTeam"
+                v-model="epicForm.teamId"
+                class="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-4 py-3 text-[var(--text-primary)] focus:border-emerald-400 focus:outline-none"
+              >
+                <option :value="null">{{ t('builderView.epicNoTeam') }}</option>
+                <option v-for="team in teamsStore.teams" :key="team.id" :value="team.id">
+                  {{ team.name }}
+                </option>
+              </select>
+              <input
+                v-else
+                v-model="newTeamName"
+                type="text"
+                autofocus
+                @keydown.enter.prevent="crearEquipoInline"
+                @keydown.esc="creatingNewTeam = false; newTeamName = ''"
+                :placeholder="t('builderView.newTeamPlaceholder')"
+                class="w-full rounded-xl border border-emerald-400 bg-[var(--bg-panel)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+              />
+              <button
+                type="button"
+                class="shrink-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-4 py-3 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--bg-card)]/10"
+                @click="creatingNewTeam ? crearEquipoInline() : (creatingNewTeam = true)"
+              >
+                {{ creatingNewTeam ? t('common.save') : t('builderView.newTeamButton') }}
+              </button>
+            </div>
+            <p class="mt-1.5 text-xs text-[var(--text-muted)]">{{ t('builderView.epicTeamHint') }}</p>
+          </div>
           <p v-if="epicError" class="rounded-xl border border-[var(--priority-urg-bg)]/30 bg-[var(--priority-urg-bg)]/10 px-4 py-3 text-sm text-white">{{ epicError }}</p>
           <div class="flex gap-3 pt-2">
             <button data-cy="btn-guardar-epic" type="submit" class="flex-1 rounded-xl bg-[var(--status-done-bg)] px-4 py-3 font-semibold text-[var(--text-primary)] transition hover:bg-emerald-400">
@@ -541,7 +581,7 @@ import {
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppIcon from '@/components/shared/AppIcon.vue'
 import ApplicationFormModal from '@/components/shared/ApplicationFormModal.vue'
-import { useApplicationsStore, useEpicsStore, useTicketsStore, useAuthStore } from '@/stores'
+import { useApplicationsStore, useEpicsStore, useTicketsStore, useAuthStore, useTeamsStore } from '@/stores'
 import { useDialogStore } from '@/stores/dialog'
 import { api } from '@/services/api'
 import { useDragDropEpics } from '@/composables/useDragDropEpics'
@@ -558,6 +598,7 @@ const authStore = useAuthStore()
 const dialogStore = useDialogStore()
 const epicsStore = useEpicsStore()
 const ticketsStore = useTicketsStore()
+const teamsStore = useTeamsStore()
 // Controles para la creación inline de tickets
 const creatingTicketInEpic = ref<string | null>(null)
 const newTicketTitle = ref('')
@@ -603,7 +644,11 @@ const epicForm = reactive({
   title: '',
   description: '',
   dueDate: '',
+  teamId: null as string | null,
 })
+
+const creatingNewTeam = ref(false)
+const newTeamName = ref('')
 
 watch(() => appForm.name, (val) => { if (val) appError.value = '' })
 watch(() => epicForm.title, (val) => { if (val) epicError.value = '' })
@@ -620,7 +665,26 @@ const resetEpicForm = () => {
   epicForm.title = ''
   epicForm.description = ''
   epicForm.dueDate = ''
+  epicForm.teamId = null
   epicError.value = ''
+  creatingNewTeam.value = false
+  newTeamName.value = ''
+}
+
+const crearEquipoInline = async () => {
+  const name = newTeamName.value.trim()
+  if (!name) {
+    creatingNewTeam.value = false
+    return
+  }
+  try {
+    const created = await teamsStore.create({ name })
+    epicForm.teamId = created.id
+    newTeamName.value = ''
+    creatingNewTeam.value = false
+  } catch (error) {
+    epicError.value = error instanceof Error ? error.message : 'Error al crear el equipo'
+  }
 }
 
 const openAppModal = (app?: Application) => {
@@ -654,9 +718,16 @@ const openEpicModal = (epic?: Epic) => {
     epicForm.title = epic.title
     epicForm.description = epic.description || ''
     epicForm.dueDate = epic.dueDate ? epic.dueDate.slice(0, 10) : ''
+    epicForm.teamId = (epic as any).teamId ?? null
+    creatingNewTeam.value = false
+    newTeamName.value = ''
   } else {
     editingEpicId.value = null
     resetEpicForm()
+  }
+
+  if (teamsStore.teams.length === 0) {
+    teamsStore.fetchAll()
   }
 
   showEpicModal.value = true
@@ -766,6 +837,7 @@ const saveEpic = async () => {
           title: epicForm.title,
           description: epicForm.description,
           dueDate: epicForm.dueDate || undefined,
+          teamId: epicForm.teamId,
         } as Partial<Epic>)
       } catch (e: any) {
         if (!e.response || e.response.status !== 500) {
@@ -778,6 +850,7 @@ const saveEpic = async () => {
         title: epicForm.title,
         description: epicForm.description,
         dueDate: epicForm.dueDate || undefined,
+        teamId: epicForm.teamId,
       })
     }
 

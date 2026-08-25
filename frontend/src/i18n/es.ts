@@ -514,6 +514,11 @@ export default {
     targetApplication: 'Aplicación destino',
     saveEpic: 'Guardar épica',
     ticketTitlePlaceholder: 'Título del ticket...',
+    epicTeamLabel: 'Equipo',
+    epicNoTeam: 'Sin equipo asignado',
+    epicTeamHint: 'Agrupa esta épica junto a las demás del mismo equipo para verlas y evaluarlas juntas en "Equipos".',
+    newTeamPlaceholder: 'Nombre del nuevo equipo...',
+    newTeamButton: '+ Nuevo equipo',
   },
 
   // ==========================================
@@ -595,6 +600,35 @@ export default {
   },
 
   // ==========================================
+  // SECCIÓN: Vista de Equipos (agrupador de épicas)
+  // Software factory: seguimiento y evaluación por equipo de estudiantes
+  // ==========================================
+  teamsView: {
+    title: 'Equipos',
+    subtitle: 'Agrupa las épicas de cada equipo para hacerles seguimiento y evaluarlos como una unidad',
+    newTeam: 'Nuevo equipo',
+    editTeam: 'Editar equipo',
+    loading: 'Cargando...',
+    noTeams: 'Todavía no hay equipos creados. Crea uno y asígnalo a una épica desde el Constructor.',
+    epics: 'épicas',
+    ticketsDone: 'tickets',
+    needsReview: 'Revisar',
+    weakHint: 'Este equipo tiene menos de un tercio de su trabajo completado',
+    collapse: 'Contraer',
+    expand: 'Expandir',
+    noEpicsForTeam: 'Este equipo todavía no tiene épicas asignadas',
+    nameLabel: 'Nombre del equipo',
+    namePlaceholder: 'Equipo A - DuocUC - 2026-1',
+    descPlaceholder: 'Universidad, semestre, integrantes, etc.',
+    nameRequired: 'El nombre del equipo es obligatorio',
+    confirmDelete: '¿Eliminar el equipo "{name}"? Sus épicas no se borrarán, solo quedarán sin equipo asignado.',
+    statusTodo: 'por hacer',
+    statusInProgress: 'en progreso',
+    statusBlocked: 'bloqueados',
+    statusCompleted: 'completados',
+  },
+
+  // ==========================================
   // SECCIÓN: Navegación de layouts
   // Sidebar y encabezados de AdminLayout y DeveloperLayout
   // ==========================================
@@ -611,6 +645,7 @@ export default {
     workbench: 'Workbench',
     myUploads: 'Mis Archivos',
     teamAssignment: 'Asignación de Equipo',
+    teams: 'Equipos',
     support: 'Soporte',
   },
 

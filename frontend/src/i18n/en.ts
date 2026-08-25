@@ -514,6 +514,11 @@ export default {
     targetApplication: 'Target application',
     saveEpic: 'Save epic',
     ticketTitlePlaceholder: 'Ticket title...',
+    epicTeamLabel: 'Team',
+    epicNoTeam: 'No team assigned',
+    epicTeamHint: 'Group this epic with the rest of the same team\'s epics to review and evaluate them together in "Teams".',
+    newTeamPlaceholder: 'New team name...',
+    newTeamButton: '+ New team',
   },
 
   // ==========================================
@@ -594,6 +599,31 @@ export default {
     developerCount: 'developer(s)',
   },
 
+  teamsView: {
+    title: 'Teams',
+    subtitle: 'Group each team\'s epics to track and evaluate them as a unit',
+    newTeam: 'New team',
+    editTeam: 'Edit team',
+    loading: 'Loading...',
+    noTeams: 'No teams yet. Create one and assign it to an epic from the Builder.',
+    epics: 'epics',
+    ticketsDone: 'tickets',
+    needsReview: 'Review',
+    weakHint: 'This team has less than a third of its work completed',
+    collapse: 'Collapse',
+    expand: 'Expand',
+    noEpicsForTeam: 'This team has no epics assigned yet',
+    nameLabel: 'Team name',
+    namePlaceholder: 'Team A - DuocUC - 2026-1',
+    descPlaceholder: 'University, semester, members, etc.',
+    nameRequired: 'Team name is required',
+    confirmDelete: 'Delete team "{name}"? Its epics will not be deleted, they will just be unassigned.',
+    statusTodo: 'to do',
+    statusInProgress: 'in progress',
+    statusBlocked: 'blocked',
+    statusCompleted: 'completed',
+  },
+
   nav: {
     administration: 'Administration',
     builder: 'Builder',
@@ -607,6 +637,7 @@ export default {
     workbench: 'Workbench',
     myUploads: 'My Files',
     teamAssignment: 'Team Assignment',
+    teams: 'Teams',
     support: 'Support',
   },
 

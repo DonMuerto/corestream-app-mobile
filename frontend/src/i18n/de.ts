@@ -507,6 +507,11 @@ export default {
     targetApplication: 'Zielanwendung',
     saveEpic: 'Epic speichern',
     ticketTitlePlaceholder: 'Ticket-Titel...',
+    epicTeamLabel: 'Team',
+    epicNoTeam: 'Kein Team zugewiesen',
+    epicTeamHint: 'Gruppiere dieses Epic mit den anderen desselben Teams, um sie gemeinsam unter "Teams" zu prüfen und zu bewerten.',
+    newTeamPlaceholder: 'Name des neuen Teams...',
+    newTeamButton: '+ Neues Team',
   },
 
   // ==========================================

@@ -27,6 +27,7 @@ class EpicCreate(BaseModel):
     description: Optional[str] = Field(None, max_length=10_000)
     application_id: UUID
     due_date: Optional[datetime] = None
+    team_id: Optional[UUID] = None
 
     @field_validator("title")
     @classmethod
@@ -55,6 +56,7 @@ class EpicUpdate(BaseModel):
     order_index: Optional[int] = None
     due_date: Optional[datetime] = None
     is_collapsed: Optional[bool] = None
+    team_id: Optional[UUID] = None
 
     @field_validator("title")
     @classmethod
@@ -104,11 +106,16 @@ class EpicResponse(BaseModel):
     title: str
     description: Optional[str] = None
     application_id: UUID
+    application_name: Optional[str] = None
     order_index: int
     due_date: Optional[datetime] = None
     is_collapsed: bool
     created_at: datetime
-    
+
+    # Equipo asignado a esta épica (opcional) — ver app/models/team.py
+    team_id: Optional[UUID] = None
+    team_name: Optional[str] = None
+
     # Campos calculados para la UI (CS-010)
     progress: float = 0.0
     total_tickets: int = 0

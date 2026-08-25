@@ -32,6 +32,7 @@ from app.routers import (
     notifications,
     subtasks,
     support_tickets,
+    teams,
     ticket_redirection,
     tickets,
     uploads,
@@ -180,6 +181,7 @@ app.include_router(users.router, prefix="/api/users")
 app.include_router(invitations.router)  # prefijo embebido en el router: /api/invitations
 app.include_router(applications.router, prefix="/api/applications")
 app.include_router(epics.router, prefix="/api/epics") # Resulta en /api/epics/...
+app.include_router(teams.router)  # prefijo embebido en el router: /api/teams
 app.include_router(ticket_redirection.router)  # Ticket redirection endpoints: /api/tickets/... — MUST come before tickets.router
 app.include_router(tickets.router, prefix="/api/tickets")
 app.include_router(subtasks.router, prefix="/api/tickets/{ticket_id}/subtasks")

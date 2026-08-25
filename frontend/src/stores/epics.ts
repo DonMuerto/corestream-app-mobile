@@ -204,6 +204,7 @@ export const useEpicsStore = defineStore('epics', () => {
     title: string
     description?: string
     dueDate?: string | null
+    teamId?: string | null
   }): Promise<Epic> => {
     isLoading.value = true
     error.value = null
@@ -213,6 +214,7 @@ export const useEpicsStore = defineStore('epics', () => {
         title: data.title,
         description: data.description,
         dueDate: data.dueDate || undefined,
+        teamId: data.teamId || undefined,
       })
       epics.value.push(created)
       associatedTickets.value.set(created.id, [])
