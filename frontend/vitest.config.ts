@@ -12,6 +12,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // Reemplaza el localStorage nativo de Node (roto sin --localstorage-file,
+    // pisa al de jsdom) por una implementación funcional — ver tests/setup.ts.
+    setupFiles: ['./tests/setup.ts'],
     // Asegura que Vitest encuentre los archivos .spec.ts en la raíz o en src
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}']
   }

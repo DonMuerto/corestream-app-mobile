@@ -11,6 +11,11 @@ vi.mock('@/services/api', () => ({
       getMe: vi.fn(),
       register: vi.fn(),
       refresh: vi.fn(),
+      // Nota: no se mockea getWsTicket a propósito — connectRealtime() ya
+      // atrapa el error de useWebSocket().connect() y solo lo loguea
+      // (no rompe la sesión), así que dejarlo sin mockear no falla ningún
+      // test, solo genera el "Error al conectar WebSocket" esperado en
+      // stderr durante login/initialize.
       updateProfile: vi.fn(),
       changePassword: vi.fn(),
       requestPasswordReset: vi.fn(),
@@ -68,9 +73,9 @@ describe('useAuthStore', () => {
       expect(store.user).toBeNull()
     })
 
-    it('inicia sin tokens', () => {
+    it('inicia sin access token', () => {
       const store = useAuthStore()
-      expect(store.tokens).toBeNull()
+      expect(store.accessToken).toBeNull()
     })
 
     it('inicia sin autenticar', () => {
@@ -179,11 +184,11 @@ describe('useAuthStore', () => {
       expect(store.user).toBeNull()
     })
 
-    it('limpia los tokens', () => {
+    it('limpia el access token', () => {
       const store = useAuthStore()
-      store.tokens = makeTokens()
+      store.accessToken = makeTokens().accessToken
       store.clearSession()
-      expect(store.tokens).toBeNull()
+      expect(store.accessToken).toBeNull()
     })
 
     it('pone isAuthenticated en false', () => {
@@ -205,13 +210,6 @@ describe('useAuthStore', () => {
       store.clearSession()
       expect(clearAuthTokens).toHaveBeenCalled()
     })
-
-    it('elimina authTokens del localStorage', () => {
-      localStorage.setItem('authTokens', JSON.stringify(makeTokens()))
-      const store = useAuthStore()
-      store.clearSession()
-      expect(localStorage.getItem('authTokens')).toBeNull()
-    })
   })
 
   // ── login ───────────────────────────────────────────────────────────────
@@ -230,14 +228,14 @@ describe('useAuthStore', () => {
       expect(store.isAuthenticated).toBe(true)
     })
 
-    it('guarda los tokens tras login exitoso', async () => {
+    it('guarda el access token en memoria tras login exitoso', async () => {
       const tokens = makeTokens()
       vi.mocked(api.auth.login).mockResolvedValue({ tokens, user: makeUser() } as any)
       vi.mocked(api.auth.getMe).mockResolvedValue(makeUser())
 
       const store = useAuthStore()
       await store.login('dev@corestream.com', 'Test1234!')
-      expect(store.tokens).toEqual(tokens)
+      expect(store.accessToken).toBe(tokens.accessToken)
     })
 
     it('llama a setAuthTokens con los tokens recibidos', async () => {
@@ -277,16 +275,6 @@ describe('useAuthStore', () => {
       expect(store.isAuthenticated).toBe(false)
       expect(store.isLoading).toBe(false)
     })
-
-    it('persiste accessToken en localStorage', async () => {
-      const tokens = makeTokens()
-      vi.mocked(api.auth.login).mockResolvedValue({ tokens, user: makeUser() } as any)
-      vi.mocked(api.auth.getMe).mockResolvedValue(makeUser())
-
-      const store = useAuthStore()
-      await store.login('dev@corestream.com', 'Test1234!')
-      expect(localStorage.getItem('accessToken')).toBe(tokens.accessToken)
-    })
   })
 
   // ── logout ──────────────────────────────────────────────────────────────
@@ -318,21 +306,28 @@ describe('useAuthStore', () => {
   // ── refreshToken ────────────────────────────────────────────────────────
 
   describe('refreshToken', () => {
-    it('lanza error si no hay refresh token', async () => {
+    // El refresh token vive en una cookie httpOnly (nunca en el store), así
+    // que no hay nada que el cliente pueda "no tener" de antemano — quien
+    // decide si el refresh es válido es el backend. Si la cookie falta o
+    // expiró, /auth/refresh responde con error y eso es lo que se propaga.
+    it('lanza error y limpia la sesión si el backend rechaza el refresh', async () => {
+      vi.mocked(api.auth.refresh).mockRejectedValue(new Error('No autenticado'))
+
       const store = useAuthStore()
-      store.tokens = null
-      await expect(store.refreshToken()).rejects.toThrow('No hay refresh token disponible')
+      store.isAuthenticated = true
+      await expect(store.refreshToken()).rejects.toThrow('No autenticado')
+      expect(store.isAuthenticated).toBe(false)
     })
 
-    it('actualiza tokens tras refresh exitoso', async () => {
+    it('actualiza el access token tras refresh exitoso', async () => {
       const newTokens = makeTokens()
       newTokens.accessToken = 'new.header.payload'
       vi.mocked(api.auth.refresh).mockResolvedValue(newTokens as any)
 
       const store = useAuthStore()
-      store.tokens = makeTokens()
+      store.accessToken = makeTokens().accessToken
       await store.refreshToken()
-      expect(store.tokens?.accessToken).toBe('new.header.payload')
+      expect(store.accessToken).toBe('new.header.payload')
     })
   })
 })

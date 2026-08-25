@@ -93,6 +93,15 @@ jobs:
       TEST_DATABASE_URL: postgresql+asyncpg://corestream:corestream@localhost:5432/corestream_test
       TEST_REDIS_URL: redis://localhost:6379/15
       SECRET_KEY: clave-de-ci-no-usar-en-produccion
+      # UPLOAD_DIR por defecto es "/app/storage" (app/config.py) — una ruta
+      # que solo existe dentro de la imagen Docker (ver Dockerfile: WORKDIR
+      # /app + mkdir -p /app/storage/...). Este job corre pytest directo
+      # sobre el runner de Ubuntu, sin ese contenedor, así que "/app" ni
+      # siquiera existe: los tests de documents.py fallaban con
+      # PermissionError al intentar crear /app/storage. UPLOAD_DIR ya se lee
+      # desde el entorno (pydantic-settings); solo hacía falta apuntarlo a
+      # un directorio real y escribible en el runner.
+      UPLOAD_DIR: /tmp/corestream-uploads-ci
 
     steps:
       - uses: actions/checkout@v4
