@@ -155,3 +155,115 @@ async def test_developer_no_puede_crear_equipos(client, dev_headers):
 async def test_admin_puede_gestionar_equipos(client, admin_headers):
     res = await client.post("/api/teams/", json={"name": "Equipo Admin"}, headers=admin_headers)
     assert res.status_code == 201
+
+
+# ---------------------------------------------------------------------------
+# Integrantes — sueltos (sin cuenta) o vinculados a un User existente
+# ---------------------------------------------------------------------------
+
+async def test_agregar_integrante_suelto(client, leader_headers):
+    equipo = await client.post("/api/teams/", json={"name": "Equipo Integrantes 1"}, headers=leader_headers)
+    team_id = equipo.json()["id"]
+
+    res = await client.post(
+        f"/api/teams/{team_id}/members",
+        json={"name": "Estudiante Sin Cuenta", "email": "estudiante@duoc.cl"},
+        headers=leader_headers,
+    )
+    assert res.status_code == 201, res.text[:300]
+    body = res.json()
+    assert body["name"] == "Estudiante Sin Cuenta"
+    assert body["email"] == "estudiante@duoc.cl"
+    assert body["user_id"] is None
+
+
+async def test_agregar_integrante_vinculado_a_usuario_existente(client, leader_headers, dev_id):
+    equipo = await client.post("/api/teams/", json={"name": "Equipo Integrantes 2"}, headers=leader_headers)
+    team_id = equipo.json()["id"]
+
+    res = await client.post(
+        f"/api/teams/{team_id}/members", json={"userId": dev_id}, headers=leader_headers
+    )
+    assert res.status_code == 201, res.text[:300]
+    body = res.json()
+    assert body["user_id"] == dev_id
+    # nombre/email se completan automáticamente desde el User vinculado
+    assert body["name"]
+    assert body["email"]
+
+
+async def test_agregar_integrante_con_userid_inexistente_da_404(client, leader_headers):
+    equipo = await client.post("/api/teams/", json={"name": "Equipo Integrantes 3"}, headers=leader_headers)
+    team_id = equipo.json()["id"]
+
+    res = await client.post(
+        f"/api/teams/{team_id}/members",
+        json={"userId": "00000000-0000-4000-8000-000000000000"},
+        headers=leader_headers,
+    )
+    assert res.status_code == 404
+
+
+async def test_agregar_integrante_sin_nombre_ni_userid_da_400(client, leader_headers):
+    equipo = await client.post("/api/teams/", json={"name": "Equipo Integrantes 4"}, headers=leader_headers)
+    team_id = equipo.json()["id"]
+
+    res = await client.post(f"/api/teams/{team_id}/members", json={}, headers=leader_headers)
+    assert res.status_code == 400
+
+
+async def test_integrantes_aparecen_en_el_detalle_y_cuentan_en_member_count(client, leader_headers):
+    equipo = await client.post("/api/teams/", json={"name": "Equipo Integrantes 5"}, headers=leader_headers)
+    team_id = equipo.json()["id"]
+
+    await client.post(f"/api/teams/{team_id}/members", json={"name": "Persona A"}, headers=leader_headers)
+    await client.post(f"/api/teams/{team_id}/members", json={"name": "Persona B"}, headers=leader_headers)
+
+    detalle = await client.get(f"/api/teams/{team_id}", headers=leader_headers)
+    assert detalle.status_code == 200
+    assert len(detalle.json()["members"]) == 2
+
+    listado = await client.get("/api/teams/", headers=leader_headers)
+    equipo_en_lista = next(t for t in listado.json() if t["id"] == team_id)
+    assert equipo_en_lista["member_count"] == 2
+
+
+async def test_quitar_integrante_no_afecta_la_cuenta_del_usuario(client, leader_headers, dev_id):
+    equipo = await client.post("/api/teams/", json={"name": "Equipo Integrantes 6"}, headers=leader_headers)
+    team_id = equipo.json()["id"]
+
+    agregado = await client.post(
+        f"/api/teams/{team_id}/members", json={"userId": dev_id}, headers=leader_headers
+    )
+    member_id = agregado.json()["id"]
+
+    res = await client.delete(f"/api/teams/{team_id}/members/{member_id}", headers=leader_headers)
+    assert res.status_code == 204
+
+    detalle = await client.get(f"/api/teams/{team_id}", headers=leader_headers)
+    assert detalle.json()["members"] == []
+
+    # el usuario sigue existiendo, solo se quitó del equipo
+    usuario = await client.get(f"/api/users/{dev_id}", headers=leader_headers)
+    assert usuario.status_code == 200
+
+
+async def test_quitar_integrante_inexistente_da_404(client, leader_headers):
+    equipo = await client.post("/api/teams/", json={"name": "Equipo Integrantes 7"}, headers=leader_headers)
+    team_id = equipo.json()["id"]
+
+    res = await client.delete(
+        f"/api/teams/{team_id}/members/00000000-0000-4000-8000-000000000000",
+        headers=leader_headers,
+    )
+    assert res.status_code == 404
+
+
+async def test_developer_no_puede_agregar_integrantes(client, dev_headers, leader_headers):
+    equipo = await client.post("/api/teams/", json={"name": "Equipo Integrantes 8"}, headers=leader_headers)
+    team_id = equipo.json()["id"]
+
+    res = await client.post(
+        f"/api/teams/{team_id}/members", json={"name": "Intento Dev"}, headers=dev_headers
+    )
+    assert res.status_code == 403

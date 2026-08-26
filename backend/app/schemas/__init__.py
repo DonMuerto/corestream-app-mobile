@@ -47,6 +47,8 @@ from app.schemas.subtask import (
 from app.schemas.team import (
     TeamCreate,
     TeamDetailResponse,
+    TeamMemberCreate,
+    TeamMemberEntry,
     TeamResponse,
     TeamUpdate,
 )
@@ -116,6 +118,8 @@ __all__ = [
     "TeamUpdate",
     "TeamResponse",
     "TeamDetailResponse",
+    "TeamMemberCreate",
+    "TeamMemberEntry",
     # Esquemas de Ticket
     "TicketCreate",
     "TicketUpdate",

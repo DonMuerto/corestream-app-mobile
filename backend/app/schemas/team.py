@@ -40,6 +40,38 @@ class TeamUpdate(BaseModel):
         return v.strip() if v else v
 
 
+class TeamMemberCreate(BaseModel):
+    """
+    Agrega un integrante a un equipo. Dos formas de uso:
+    - Suelto: solo `name` (y opcionalmente `email` de referencia) — no
+      requiere que la persona tenga cuenta en CoreStream.
+    - Vinculado: `userId` de un User ya existente en el sistema — `name`/
+      `email` se completan automáticamente desde ese usuario si no se
+      envían explícitos.
+    """
+    name: Optional[str] = Field(None, max_length=255)
+    email: Optional[str] = Field(None, max_length=255)
+    user_id: Optional[UUID] = Field(None, alias="userId")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_not_blank(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not v.strip():
+            raise ValueError("El nombre no puede estar vacío")
+        return v.strip() if v else v
+
+
+class TeamMemberEntry(BaseModel):
+    id: UUID
+    name: str
+    email: Optional[str] = None
+    user_id: Optional[UUID] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TeamResponse(BaseModel):
     """
     Respuesta de listado: un equipo con sus estadísticas agregadas, sin el
@@ -55,10 +87,12 @@ class TeamResponse(BaseModel):
     total_tickets: int = 0
     completed_tickets: int = 0
     progress: float = 0.0
+    member_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class TeamDetailResponse(TeamResponse):
-    """Detalle de un equipo con sus épicas completas (para la vista Por Equipo)."""
+    """Detalle de un equipo con sus épicas y sus integrantes (vista Equipos)."""
     epics: List[EpicResponse] = []
+    members: List[TeamMemberEntry] = []

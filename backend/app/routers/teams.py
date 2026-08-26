@@ -21,8 +21,16 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.middleware.auth import require_role
-from app.models import Epic, Team, Ticket, User, UserRole
-from app.schemas import EpicResponse, TeamCreate, TeamDetailResponse, TeamResponse, TeamUpdate
+from app.models import Epic, Team, TeamMember, Ticket, User, UserRole
+from app.schemas import (
+    EpicResponse,
+    TeamCreate,
+    TeamDetailResponse,
+    TeamMemberCreate,
+    TeamMemberEntry,
+    TeamResponse,
+    TeamUpdate,
+)
 
 _MANAGERS = [UserRole.ADMIN, UserRole.TEAM_LEADER]
 
@@ -54,6 +62,7 @@ def _team_response(team: Team) -> TeamResponse:
     view.total_tickets = total_tickets
     view.completed_tickets = completed_tickets
     view.progress = progress
+    view.member_count = len(team.members)
     return view
 
 
@@ -69,7 +78,10 @@ async def list_teams(
 ) -> List[TeamResponse]:
     result = await db.execute(
         select(Team)
-        .options(selectinload(Team.epics).selectinload(Epic.tickets))
+        .options(
+            selectinload(Team.epics).selectinload(Epic.tickets),
+            selectinload(Team.members),
+        )
         .order_by(Team.name.asc())
     )
     teams = result.unique().scalars().all()
@@ -107,6 +119,7 @@ async def create_team(
     view.total_tickets = 0
     view.completed_tickets = 0
     view.progress = 0.0
+    view.member_count = 0
     return view
 
 
@@ -129,6 +142,7 @@ async def get_team(
             selectinload(Team.epics).selectinload(Epic.team),
             selectinload(Team.epics).selectinload(Epic.tickets).selectinload(Ticket.subtasks),
             selectinload(Team.epics).selectinload(Epic.tickets).selectinload(Ticket.assignee).selectinload(User.role),
+            selectinload(Team.members),
         )
     )
     team = result.unique().scalar_one_or_none()
@@ -148,7 +162,9 @@ async def get_team(
         epic_view.progress = round((completed / total) * 100, 2) if total > 0 else 0.0
         epic_views.append(epic_view)
 
-    return TeamDetailResponse(**base.model_dump(), epics=epic_views)
+    member_views = [TeamMemberEntry.model_validate(m) for m in team.members]
+
+    return TeamDetailResponse(**base.model_dump(), epics=epic_views, members=member_views)
 
 
 @router.put(
@@ -164,7 +180,9 @@ async def update_team(
     db: AsyncSession = Depends(get_db),
 ) -> TeamResponse:
     result = await db.execute(
-        select(Team).where(Team.id == team_id).options(selectinload(Team.epics).selectinload(Epic.tickets))
+        select(Team)
+        .where(Team.id == team_id)
+        .options(selectinload(Team.epics).selectinload(Epic.tickets), selectinload(Team.members))
     )
     team = result.unique().scalar_one_or_none()
     if not team:
@@ -187,7 +205,7 @@ async def update_team(
         setattr(team, field, value)
 
     await db.commit()
-    await db.refresh(team, attribute_names=["epics"])
+    await db.refresh(team, attribute_names=["epics", "members"])
     return _team_response(team)
 
 
@@ -211,4 +229,81 @@ async def delete_team(
         )
 
     await db.delete(team)
+    await db.commit()
+
+
+@router.post(
+    "/{team_id}/members",
+    response_model=TeamMemberEntry,
+    status_code=status.HTTP_201_CREATED,
+    summary="Agregar integrante a un equipo",
+    description=(
+        "Agrega un integrante suelto (solo nombre, sin cuenta en CoreStream) "
+        "o vinculado a un usuario ya existente en el sistema (enviando userId)."
+    ),
+)
+async def add_team_member(
+    team_id: UUID,
+    data: TeamMemberCreate,
+    current_user: User = Depends(require_role(_MANAGERS)),
+    db: AsyncSession = Depends(get_db),
+) -> TeamMemberEntry:
+    team_check = await db.execute(select(Team.id).where(Team.id == team_id))
+    if not team_check.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Equipo con ID {team_id} no encontrado",
+        )
+
+    name = data.name
+    email = data.email
+
+    if data.user_id is not None:
+        user_result = await db.execute(select(User).where(User.id == data.user_id))
+        linked_user = user_result.scalar_one_or_none()
+        if not linked_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Usuario con ID {data.user_id} no encontrado",
+            )
+        # Snapshot al vincular: no se re-consulta el User después, así el
+        # nombre no cambia bajo los pies si el usuario edita su perfil.
+        name = name or linked_user.full_name
+        email = email or linked_user.email
+    elif not name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Se requiere 'name' (integrante suelto) o 'userId' (vincular usuario existente)",
+        )
+
+    member = TeamMember(team_id=team_id, user_id=data.user_id, name=name, email=email)
+    db.add(member)
+    await db.commit()
+    await db.refresh(member)
+    return TeamMemberEntry.model_validate(member)
+
+
+@router.delete(
+    "/{team_id}/members/{member_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Quitar integrante de un equipo",
+    description="Quita a la persona del equipo. Si estaba vinculada a un usuario, la cuenta del usuario no se ve afectada.",
+)
+async def remove_team_member(
+    team_id: UUID,
+    member_id: UUID,
+    current_user: User = Depends(require_role(_MANAGERS)),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id, TeamMember.team_id == team_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Integrante con ID {member_id} no encontrado en este equipo",
+        )
+
+    await db.delete(member)
     await db.commit()

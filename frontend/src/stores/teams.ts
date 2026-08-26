@@ -6,14 +6,16 @@
  * unidad ("mini-proyecto"). Contexto completo: Alloxentric opera como
  * software factory con convenio DuocUC/UTEM; cada semestre reparte decenas
  * de proyectos entre muchos equipos, y cada equipo suele trabajar un
- * conjunto propio de épicas. Los estudiantes no usan CoreStream — quien lo
- * usa es el Team Leader interno que hace seguimiento por fuera, por eso
- * esto es un catálogo de etiquetas y no un sistema de membresías/roles.
+ * conjunto propio de épicas. Los estudiantes rara vez usan CoreStream —
+ * quien lo usa a diario es el Team Leader interno que hace seguimiento por
+ * fuera — por eso los integrantes (members) pueden ser nombres sueltos sin
+ * cuenta, o vincularse a un User real si Karina necesita control fino
+ * (asignar tickets con precisión a esa persona).
  */
 
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Team, TeamDetail } from '@/types'
+import type { Team, TeamDetail, TeamMember } from '@/types'
 import { api } from '@/services/api'
 
 export const useTeamsStore = defineStore('teams', () => {
@@ -59,6 +61,26 @@ export const useTeamsStore = defineStore('teams', () => {
     teams.value = teams.value.filter((t) => t.id !== teamId)
   }
 
+  const addMember = async (
+    teamId: string,
+    data: { name?: string; email?: string; userId?: string }
+  ): Promise<TeamMember> => {
+    const member = await api.teams.addMember(teamId, data)
+    const index = teams.value.findIndex((t) => t.id === teamId)
+    if (index !== -1) {
+      teams.value[index] = { ...teams.value[index], memberCount: teams.value[index].memberCount + 1 }
+    }
+    return member
+  }
+
+  const removeMember = async (teamId: string, memberId: string): Promise<void> => {
+    await api.teams.removeMember(teamId, memberId)
+    const index = teams.value.findIndex((t) => t.id === teamId)
+    if (index !== -1) {
+      teams.value[index] = { ...teams.value[index], memberCount: Math.max(0, teams.value[index].memberCount - 1) }
+    }
+  }
+
   return {
     teams,
     isLoading,
@@ -68,5 +90,7 @@ export const useTeamsStore = defineStore('teams', () => {
     create,
     update,
     remove,
+    addMember,
+    removeMember,
   }
 })

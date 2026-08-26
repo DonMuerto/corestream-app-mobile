@@ -19,6 +19,7 @@ import type {
   Epic,
   Team,
   TeamDetail,
+  TeamMember,
   Ticket,
   Subtask,
   TicketStatus,
@@ -409,6 +410,16 @@ function mapTeamFromApi(raw: Record<string, unknown>): Team {
     totalTickets: Number(raw.total_tickets ?? raw.totalTickets ?? 0),
     completedTickets: Number(raw.completed_tickets ?? raw.completedTickets ?? 0),
     progress: Number(raw.progress ?? 0),
+    memberCount: Number(raw.member_count ?? raw.memberCount ?? 0),
+  }
+}
+
+function mapTeamMemberFromApi(raw: Record<string, unknown>): TeamMember {
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    email: (raw.email as string) ?? null,
+    userId: (raw.user_id as string) ?? (raw.userId as string) ?? null,
   }
 }
 
@@ -416,6 +427,7 @@ function mapTeamDetailFromApi(raw: Record<string, unknown>): TeamDetail {
   return {
     ...mapTeamFromApi(raw),
     epics: Array.isArray(raw.epics) ? (raw.epics as any[]).map((e) => mapEpicFromApi(e as Record<string, unknown>)) : [],
+    members: Array.isArray(raw.members) ? (raw.members as any[]).map((m) => mapTeamMemberFromApi(m as Record<string, unknown>)) : [],
   }
 }
 
@@ -1032,6 +1044,26 @@ const realApi = {
     /** Elimina un equipo. Sus épicas NO se borran, quedan sin equipo. (DELETE /teams/{id}) */
     delete: async (teamId: string): Promise<void> => {
       await apiClient.delete(`/teams/${teamId}`)
+    },
+
+    /**
+     * Agrega un integrante al equipo. Dos formas:
+     * - Suelto: { name, email? } — sin cuenta en CoreStream.
+     * - Vinculado: { userId } — a un usuario ya existente en el sistema.
+     * (POST /teams/{id}/members)
+     */
+    addMember: async (teamId: string, data: { name?: string; email?: string; userId?: string }): Promise<TeamMember> => {
+      const response = await apiClient.post<Record<string, unknown>>(`/teams/${teamId}/members`, {
+        name: data.name || undefined,
+        email: data.email || undefined,
+        userId: data.userId || undefined,
+      })
+      return mapTeamMemberFromApi(unwrapResponseData<Record<string, unknown>>(response) ?? {})
+    },
+
+    /** Quita a un integrante del equipo (no borra su cuenta). (DELETE /teams/{id}/members/{memberId}) */
+    removeMember: async (teamId: string, memberId: string): Promise<void> => {
+      await apiClient.delete(`/teams/${teamId}/members/${memberId}`)
     },
   },
 
