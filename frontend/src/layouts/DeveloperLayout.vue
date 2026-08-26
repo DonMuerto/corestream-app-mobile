@@ -56,6 +56,53 @@
           {{ t('nav.support') }}
         </router-link>
 
+        <!--
+          Team Leader también gestiona el día a día del equipo a nivel de
+          proyecto (Constructor, Analítica, Incidentes, Reuniones) — esas
+          rutas viven bajo /admin (con permiso ya habilitado para
+          TEAM_LEADER, ver router/index.ts), pero solo tenían link en el
+          sidebar de AdminLayout. Sin esto, Team Leader tenía acceso real
+          pero ninguna forma de descubrirlo salvo escribiendo la URL a mano.
+        -->
+        <template v-if="authStore.isTeamLeader">
+          <hr class="border-[var(--border-subtle)]" />
+          <p class="px-4 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            {{ t('nav.administration') }}
+          </p>
+
+          <router-link
+            to="/admin/builder"
+            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+          >
+            {{ t('nav.builder') }}
+          </router-link>
+
+          <router-link
+            to="/admin/analytics"
+            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+          >
+            {{ t('nav.analytics') }}
+          </router-link>
+
+          <router-link
+            to="/admin/incidents"
+            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+          >
+            Incidentes
+          </router-link>
+
+          <router-link
+            to="/admin/meetings"
+            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+          >
+            Reuniones
+          </router-link>
+        </template>
+
       </nav>
     </aside>
 

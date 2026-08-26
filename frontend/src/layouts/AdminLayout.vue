@@ -61,6 +61,51 @@
           </router-link>
         </template>
 
+        <!--
+          Reciprocal del bloque que se agregó en DeveloperLayout: Team
+          Leader entra aquí desde el sidebar de Desarrollo, y sin esto no
+          tenía forma de volver a Workbench/Equipos salvo con el botón
+          "atrás" del navegador.
+        -->
+        <template v-if="!isAdmin && isAdminOrLeader">
+          <hr class="border-[var(--border-subtle)]" />
+          <p class="px-4 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            {{ t('nav.development') }}
+          </p>
+
+          <router-link
+            to="/dev/workbench"
+            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+          >
+            {{ t('nav.workbench') }}
+          </router-link>
+
+          <router-link
+            to="/dev/team-assignment"
+            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+          >
+            {{ t('nav.teamAssignment') }}
+          </router-link>
+
+          <router-link
+            to="/dev/teams"
+            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+          >
+            {{ t('nav.teams') }}
+          </router-link>
+
+          <router-link
+            to="/dev/support"
+            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+          >
+            {{ t('nav.support') }}
+          </router-link>
+        </template>
+
         <template v-if="isAdmin">
           <router-link
             to="/admin/code-docs"
