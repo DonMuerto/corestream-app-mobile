@@ -256,13 +256,19 @@
             ✓ PR válido — El botón Completar está habilitado
           </p>
         </div>
+        </div>
+        <!-- ^ cierra "Contenido Principal (Scrollable)" (flex-1 overflow-y-auto)
+             abierto arriba — antes el ActionDock (abajo) quedaba adentro de
+             este contenedor con scroll en vez de fijo, así que había que
+             desplazarse dentro del panel para ver los botones de Comenzar/
+             Completar/Levantar Pregunta/Redireccionar. -->
 
         <!-- ================================================================ -->
         <!-- SECCIÓN: Footer con Acciones (Sticky) -->
         <!-- ================================================================ -->
         <!-- Componente ActionDock con botones principales -->
         <!-- ================================================================ -->
-        <div class="p-6 bg-[var(--bg-card)] border-t border-[var(--border-subtle)]">
+        <div class="flex-shrink-0 p-6 bg-[var(--bg-card)] border-t border-[var(--border-subtle)]">
             <ActionDock
               :ticket="ticketWithCurrentStatus"
               :is-pr-valid="isPrLinkValid"
@@ -277,7 +283,7 @@
         <!-- ================================================================ -->
         <!-- ANIMACIÓN: Confetti -->
         <!-- ================================================================ -->
-        </div> <ConfettiAnimation ref="confettiRef" />
+        <ConfettiAnimation ref="confettiRef" />
       </div>
     </Transition>
 
