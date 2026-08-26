@@ -14,6 +14,7 @@ from .base import Base, BaseEntity
 if TYPE_CHECKING:
     from app.models.application import Application
     from app.models.document import Document
+    from app.models.team import Team
     from app.models.ticket import Ticket
 
 class Epic(Base, BaseEntity):
@@ -61,7 +62,19 @@ class Epic(Base, BaseEntity):
 
     # Relación inversa con la aplicación propietaria
     application: Mapped["Application"] = relationship(lazy="raise_on_sql", back_populates="epics")
-    
+
+    # Equipo que trabaja esta épica (opcional). ondelete="SET NULL": borrar
+    # un Team no debe borrar ni huerfanar el trabajo ya hecho, solo
+    # desasociarlo — ver docstring de Team para el contexto de por qué
+    # existe este agrupador.
+    team_id: Mapped[PyUUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    team: Mapped["Team | None"] = relationship(lazy="raise_on_sql", back_populates="epics")
+
     # Una épica contiene tickets que son los elementos de trabajo reales
     # Se eliminan en cascada si la épica desaparece.
     # order_by explícito: sin esto, Postgres no garantiza el orden de la
@@ -82,6 +95,14 @@ class Epic(Base, BaseEntity):
         cascade="all, delete-orphan",
         foreign_keys="Document.epic_id",
     )
+
+    @property
+    def application_name(self) -> str | None:
+        return self.application.name if self.application else None
+
+    @property
+    def team_name(self) -> str | None:
+        return self.team.name if self.team else None
 # =====================================================================
 # Los esquemas de validación (EpicCreate, EpicUpdate) y los 
 # endpoints (GET, POST, PATCH) han sido movidos a sus respectivos 

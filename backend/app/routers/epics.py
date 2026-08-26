@@ -23,7 +23,7 @@ from app.database import get_db
 # Aún no creado
 # from app.schemas import DocumentResponse
 from app.middleware.auth import get_current_user, require_role
-from app.models import Application, Epic, Ticket, User, UserRole
+from app.models import Application, Epic, Team, Ticket, User, UserRole
 from app.schemas import EpicCreate, EpicResponse, EpicUpdate
 
 # ADMIN y TEAM_LEADER gestionan la estructura del backlog (aplicaciones,
@@ -68,6 +68,7 @@ async def get_application_epics(
         .where(Epic.application_id == app_id)
         .options(
             selectinload(Epic.application),
+            selectinload(Epic.team),
             selectinload(Epic.tickets).selectinload(Ticket.subtasks),
             selectinload(Epic.tickets).selectinload(Ticket.assignee).selectinload(User.role)
         )
@@ -139,6 +140,14 @@ async def create_epic(
             detail=f"Aplicación con ID {epic_data.application_id} no encontrada"
         )
 
+    if epic_data.team_id is not None:
+        team_check = await db.execute(select(Team).where(Team.id == epic_data.team_id))
+        if not team_check.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Equipo con ID {epic_data.team_id} no encontrado"
+            )
+
     try:
         # Obtener el siguiente order_index disponible
         max_order = await db.execute(
@@ -161,7 +170,11 @@ async def create_epic(
         result_final = await db.execute(
             select(Epic)
             .where(Epic.id == new_epic.id)
-            .options(selectinload(Epic.tickets))
+            .options(
+                selectinload(Epic.tickets),
+                selectinload(Epic.application),
+                selectinload(Epic.team),
+            )
             .execution_options(populate_existing=True)
         )
         epic_final = result_final.scalar_one()
@@ -228,6 +241,8 @@ async def get_epic(
         select(Epic)
         .where(Epic.id == epic_id)
         .options(
+            selectinload(Epic.application),
+            selectinload(Epic.team),
             selectinload(Epic.tickets).selectinload(Ticket.subtasks),
             selectinload(Epic.tickets).selectinload(Ticket.assignee).selectinload(User.role),
         )
@@ -273,6 +288,14 @@ async def update_epic(
             detail=f"Épica con ID {epic_id} no encontrada"
         )
 
+    if epic_update.team_id is not None:
+        team_check = await db.execute(select(Team).where(Team.id == epic_update.team_id))
+        if not team_check.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Equipo con ID {epic_update.team_id} no encontrado"
+            )
+
     try:
         # Aplicar cambios únicamente a campos proporcionados
         update_data = epic_update.model_dump(exclude_unset=True)
@@ -292,6 +315,8 @@ async def update_epic(
         select(Epic)
         .where(Epic.id == epic_id)
         .options(
+            selectinload(Epic.application),
+            selectinload(Epic.team),
             selectinload(Epic.tickets).selectinload(Ticket.subtasks),
             selectinload(Epic.tickets).selectinload(Ticket.assignee).selectinload(User.role),
         )
@@ -484,6 +509,8 @@ async def reorder_epic(
             select(Epic)
             .where(Epic.id == epic_id)
             .options(
+                selectinload(Epic.application),
+                selectinload(Epic.team),
                 selectinload(Epic.tickets).selectinload(Ticket.subtasks),
                 selectinload(Epic.tickets).selectinload(Ticket.assignee).selectinload(User.role),
             )

@@ -48,6 +48,16 @@
           {{ t('nav.teamAssignment') }}
         </router-link>
 
+        <!-- Agrupador de épicas por equipo de estudiantes (software factory) -->
+        <router-link
+          v-if="authStore.isTeamLeader"
+          to="/dev/teams"
+          class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+          active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+        >
+          {{ t('nav.teams') }}
+        </router-link>
+
         <router-link
           to="/dev/support"
           class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"

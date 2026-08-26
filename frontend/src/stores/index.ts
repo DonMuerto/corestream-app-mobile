@@ -28,8 +28,11 @@ export { useAnalyticsStore } from './analytics'
 // Notificaciones
 export { useNotificationsStore } from './notifications'
 
-// Equipo
+// Equipo (asignación individual de tickets a desarrolladores)
 export { useTeamStore } from './team'
+
+// Equipos (agrupador de épicas para trackear un equipo como unidad)
+export { useTeamsStore } from './teams'
 
 // Tema
 export { useThemeStore } from './theme'

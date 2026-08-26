@@ -68,6 +68,23 @@ siguen siendo exclusivos de ADMIN (ver más abajo).
 | Listar / ver | ✅ | ✅ | ✅ |
 | Crear / editar / borrar / reordenar | ✅ | ✅ | ❌ |
 
+### Equipos (`/api/teams`)
+
+Agrupador liviano de épicas (posiblemente repartidas entre varias
+Application) para trackear y evaluar el trabajo de un equipo de estudiantes
+como una unidad — ver docstring de `app/models/team.py`. Los estudiantes no
+tienen cuenta en CoreStream, así que no aparece un rol DEVELOPER en esta
+tabla: nadie salvo ADMIN/TEAM_LEADER necesita verlos.
+
+| Acción | ADMIN | TEAM_LEADER | DEVELOPER |
+|---|---|---|---|
+| Listar / ver detalle | ✅ | ✅ | ❌ (403, sin caso de uso) |
+| Crear / editar / borrar | ✅ | ✅ | ❌ |
+
+Borrar un equipo no borra sus épicas: `epics.team_id` queda en `NULL`
+(`ondelete="SET NULL"`) — el trabajo ya hecho nunca se pierde por reordenar
+o eliminar la etiqueta de agrupación.
+
 ### Tickets (`/api/tickets`)
 
 | Acción | ADMIN | TEAM_LEADER | DEVELOPER (asignado) | DEVELOPER (ajeno) |

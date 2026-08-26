@@ -17,6 +17,9 @@ import type {
   UserRole,
   Application,
   Epic,
+  Team,
+  TeamDetail,
+  TeamMember,
   Ticket,
   Subtask,
   TicketStatus,
@@ -368,6 +371,9 @@ function mapEpicFromApi(raw: Record<string, unknown>): Epic {
     title: String(raw.title ?? ''),
     description: (raw.description as string) ?? '',
     applicationId: String(raw.application_id ?? raw.applicationId ?? ''),
+    applicationName: (raw.application_name as string) ?? (raw.applicationName as string) ?? undefined,
+    teamId: (raw.team_id as string) ?? (raw.teamId as string) ?? null,
+    teamName: (raw.team_name as string) ?? (raw.teamName as string) ?? null,
     orderIndex: Number(raw.order_index ?? raw.orderIndex ?? 0),
     dueDate: raw.due_date ? String(raw.due_date) : undefined,
     isCollapsed: Boolean(raw.is_collapsed ?? raw.isCollapsed ?? false),
@@ -387,7 +393,42 @@ function mapEpicUpdateToApi(data: Partial<Epic>): Record<string, unknown> {
   if (data.orderIndex !== undefined) body.order_index = data.orderIndex
   if (data.dueDate !== undefined) body.due_date = data.dueDate
   if (data.isCollapsed !== undefined) body.is_collapsed = data.isCollapsed
+  if (data.teamId !== undefined) body.team_id = data.teamId
   return body
+}
+
+/**
+ * Convierte un equipo devuelto por FastAPI (snake_case) al tipo Team del frontend.
+ */
+function mapTeamFromApi(raw: Record<string, unknown>): Team {
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    description: (raw.description as string) ?? null,
+    createdAt: String(raw.created_at ?? ''),
+    epicCount: Number(raw.epic_count ?? raw.epicCount ?? 0),
+    totalTickets: Number(raw.total_tickets ?? raw.totalTickets ?? 0),
+    completedTickets: Number(raw.completed_tickets ?? raw.completedTickets ?? 0),
+    progress: Number(raw.progress ?? 0),
+    memberCount: Number(raw.member_count ?? raw.memberCount ?? 0),
+  }
+}
+
+function mapTeamMemberFromApi(raw: Record<string, unknown>): TeamMember {
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    email: (raw.email as string) ?? null,
+    userId: (raw.user_id as string) ?? (raw.userId as string) ?? null,
+  }
+}
+
+function mapTeamDetailFromApi(raw: Record<string, unknown>): TeamDetail {
+  return {
+    ...mapTeamFromApi(raw),
+    epics: Array.isArray(raw.epics) ? (raw.epics as any[]).map((e) => mapEpicFromApi(e as Record<string, unknown>)) : [],
+    members: Array.isArray(raw.members) ? (raw.members as any[]).map((m) => mapTeamMemberFromApi(m as Record<string, unknown>)) : [],
+  }
 }
 
 function mapUserFromApi(raw: Record<string, unknown>): User {
@@ -885,7 +926,7 @@ const realApi = {
      * @param data - Datos de la nueva épica
      * @returns Épica creada
      */
-    create: async (appId: string, data: { title: string; description?: string; dueDate?: string }): Promise<Epic> => {
+    create: async (appId: string, data: { title: string; description?: string; dueDate?: string; teamId?: string | null }): Promise<Epic> => {
       const response = await apiClient.post<ApiResponse<Epic>>(
         '/epics/',
         {
@@ -893,6 +934,7 @@ const realApi = {
           description: data.description,
           application_id: appId,
           due_date: data.dueDate || undefined,
+          team_id: data.teamId || undefined,
         }
       )
       return mapEpicFromApi(unwrapResponseData<Record<string, unknown>>(response) ?? {})
@@ -958,6 +1000,71 @@ const realApi = {
       )
       return unwrapResponseData<Document>(response)
     }
+  },
+
+  /**
+   * ========================================
+   * EQUIPOS (Team)
+   * ========================================
+   *
+   * Agrupador liviano de épicas para trackear y evaluar el trabajo de un
+   * equipo de estudiantes como una unidad. Ver docstring de
+   * backend/app/models/team.py para el contexto completo.
+   */
+  teams: {
+    /** Lista todos los equipos con sus estadísticas agregadas (GET /teams/) */
+    list: async (): Promise<Team[]> => {
+      const response = await apiClient.get<Record<string, unknown>[]>('/teams/')
+      const raw = unwrapResponseData<any[]>(response.data)
+      const items = Array.isArray(raw) ? raw : []
+      return items.map((row) => mapTeamFromApi(row as Record<string, unknown>))
+    },
+
+    /** Detalle de un equipo con todas sus épicas (GET /teams/{id}) */
+    getById: async (teamId: string): Promise<TeamDetail> => {
+      const response = await apiClient.get<Record<string, unknown>>(`/teams/${teamId}`)
+      return mapTeamDetailFromApi(response.data as Record<string, unknown>)
+    },
+
+    /** Crea un nuevo equipo (POST /teams/) */
+    create: async (data: { name: string; description?: string }): Promise<Team> => {
+      const response = await apiClient.post<Record<string, unknown>>('/teams/', {
+        name: data.name,
+        description: data.description || undefined,
+      })
+      return mapTeamFromApi(unwrapResponseData<Record<string, unknown>>(response) ?? {})
+    },
+
+    /** Renombra/actualiza un equipo (PUT /teams/{id}) */
+    update: async (teamId: string, data: { name?: string; description?: string }): Promise<Team> => {
+      const response = await apiClient.put<Record<string, unknown>>(`/teams/${teamId}`, data)
+      return mapTeamFromApi(response.data as Record<string, unknown>)
+    },
+
+    /** Elimina un equipo. Sus épicas NO se borran, quedan sin equipo. (DELETE /teams/{id}) */
+    delete: async (teamId: string): Promise<void> => {
+      await apiClient.delete(`/teams/${teamId}`)
+    },
+
+    /**
+     * Agrega un integrante al equipo. Dos formas:
+     * - Suelto: { name, email? } — sin cuenta en CoreStream.
+     * - Vinculado: { userId } — a un usuario ya existente en el sistema.
+     * (POST /teams/{id}/members)
+     */
+    addMember: async (teamId: string, data: { name?: string; email?: string; userId?: string }): Promise<TeamMember> => {
+      const response = await apiClient.post<Record<string, unknown>>(`/teams/${teamId}/members`, {
+        name: data.name || undefined,
+        email: data.email || undefined,
+        userId: data.userId || undefined,
+      })
+      return mapTeamMemberFromApi(unwrapResponseData<Record<string, unknown>>(response) ?? {})
+    },
+
+    /** Quita a un integrante del equipo (no borra su cuenta). (DELETE /teams/{id}/members/{memberId}) */
+    removeMember: async (teamId: string, memberId: string): Promise<void> => {
+      await apiClient.delete(`/teams/${teamId}/members/${memberId}`)
+    },
   },
 
   /**

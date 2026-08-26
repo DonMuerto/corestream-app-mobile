@@ -514,6 +514,11 @@ export default {
     targetApplication: 'Aplicación destino',
     saveEpic: 'Guardar épica',
     ticketTitlePlaceholder: 'Título del ticket...',
+    epicTeamLabel: 'Equipo',
+    epicNoTeam: 'Sin equipo asignado',
+    epicTeamHint: 'Agrupa esta épica junto a las demás del mismo equipo para verlas y evaluarlas juntas en "Equipos".',
+    newTeamPlaceholder: 'Nombre del nuevo equipo...',
+    newTeamButton: '+ Nuevo equipo',
   },
 
   // ==========================================
@@ -595,6 +600,61 @@ export default {
   },
 
   // ==========================================
+  // SECCIÓN: Vista de Equipos (agrupador de épicas)
+  // Software factory: seguimiento y evaluación por equipo de estudiantes
+  // ==========================================
+  teamsView: {
+    title: 'Equipos',
+    subtitle: 'Agrupa las épicas de cada equipo para hacerles seguimiento y evaluarlos como una unidad',
+    newTeam: 'Nuevo equipo',
+    editTeam: 'Editar equipo',
+    loading: 'Cargando...',
+    noTeams: 'Todavía no hay equipos creados. Crea uno y vincúlale una épica (o créala directo desde aquí).',
+    epics: 'épicas',
+    ticketsDone: 'tickets',
+    needsReview: 'Revisar',
+    weakHint: 'Este equipo tiene menos de un tercio de su trabajo completado',
+    collapse: 'Contraer',
+    expand: 'Expandir',
+    noEpicsForTeam: 'Este equipo todavía no tiene épicas asignadas',
+    nameLabel: 'Nombre del equipo',
+    namePlaceholder: 'Equipo A - DuocUC - 2026-1',
+    descPlaceholder: 'Universidad, semestre, integrantes, etc.',
+    nameRequired: 'El nombre del equipo es obligatorio',
+    confirmDelete: '¿Eliminar el equipo "{name}"? Sus épicas no se borrarán, solo quedarán sin equipo asignado.',
+    statusTodo: 'por hacer',
+    statusInProgress: 'en progreso',
+    statusBlocked: 'bloqueados',
+    statusCompleted: 'completados',
+    // Integrantes
+    members: 'Integrantes',
+    noMembers: 'Todavía no hay integrantes registrados en este equipo.',
+    addMember: 'Agregar integrante',
+    memberModeLoose: 'Nombre libre',
+    memberModeLinked: 'Vincular usuario del sistema',
+    memberNamePlaceholder: 'Nombre del integrante',
+    memberEmailPlaceholder: 'Correo (opcional)',
+    selectUser: '-- Selecciona un usuario --',
+    linkedAccountNote: 'Solo aparecen usuarios que ya tienen cuenta en CoreStream. Crear una cuenta nueva sigue siendo tarea de un Admin (Equipo → Invitar).',
+    linkedAccountHint: 'Vinculado a una cuenta de CoreStream',
+    removeMember: 'Quitar integrante',
+    memberNameRequired: 'Escribe un nombre o cambia a "Vincular usuario del sistema"',
+    memberUserRequired: 'Selecciona un usuario',
+    confirmRemoveMember: '¿Quitar a "{name}" de este equipo? Si tiene cuenta en el sistema, la cuenta no se ve afectada.',
+    // Épicas del equipo
+    epicsSection: 'Épicas del equipo',
+    linkEpic: 'Vincular épica',
+    selectProject: '-- Selecciona un proyecto --',
+    epicModeExisting: 'Épica existente',
+    epicModeNew: 'Nueva épica',
+    selectEpic: '-- Selecciona una épica --',
+    currentlyIn: 'hoy en',
+    selectProjectRequired: 'Selecciona un proyecto',
+    selectEpicRequired: 'Selecciona una épica',
+    epicTitleRequired: 'Escribe un título para la nueva épica',
+  },
+
+  // ==========================================
   // SECCIÓN: Navegación de layouts
   // Sidebar y encabezados de AdminLayout y DeveloperLayout
   // ==========================================
@@ -611,6 +671,7 @@ export default {
     workbench: 'Workbench',
     myUploads: 'Mis Archivos',
     teamAssignment: 'Asignación de Equipo',
+    teams: 'Equipos',
     support: 'Soporte',
   },
 

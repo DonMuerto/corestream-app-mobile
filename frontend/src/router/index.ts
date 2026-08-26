@@ -367,6 +367,23 @@ const routes: RouteRecordRaw[] = [
 
       {
         /**
+         * Vista de Equipos: agrupa épicas (posiblemente de varias
+         * aplicaciones) por equipo de estudiantes para trackear y evaluar
+         * su avance como una unidad. Ver docstring de
+         * backend/app/models/team.py para el contexto completo.
+         */
+        path: 'teams',
+        name: 'TeamsOverview',
+        component: () => import('@/views/dev/TeamsOverviewView.vue'),
+        meta: {
+          requiresAuth: true,
+          requiredRoles: ['ADMIN', 'TEAM_LEADER'],
+          title: 'Equipos - CoreStream'
+        }
+      },
+
+      {
+        /**
          * Vista de tickets de soporte para Developer y Team Leader
          * Permite crear, ver y gestionar bugs de producción
          */

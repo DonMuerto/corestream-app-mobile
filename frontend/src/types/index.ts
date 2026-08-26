@@ -470,6 +470,23 @@ export interface Epic {
   applicationId: string
 
   /**
+   * Nombre de la aplicación a la que pertenece (para contexto, p.ej. en la
+   * vista "Equipos" donde las épicas de un mismo equipo pueden vivir en
+   * distintas aplicaciones)
+   */
+  applicationName?: string
+
+  /**
+   * ID del equipo asignado a esta épica (opcional) — ver stores/teams.ts
+   */
+  teamId?: string | null
+
+  /**
+   * Nombre del equipo asignado (para mostrar sin una segunda consulta)
+   */
+  teamName?: string | null
+
+  /**
    * Índice de orden visual en la lista de épicas
    * Permite reordenar épicas sin una columna de "orden" adicional
    */
@@ -514,6 +531,50 @@ export interface Epic {
    * Timestamp de última actualización
    */
   updatedAt?: string
+}
+
+/**
+ * Representa un Equipo: agrupador liviano de Épicas (posiblemente
+ * repartidas entre varias aplicaciones) usado para trackear y evaluar el
+ * trabajo de un equipo de estudiantes como una unidad ("mini-proyecto").
+ * No implica membresías individuales — los estudiantes no usan CoreStream.
+ */
+export interface Team {
+  id: string
+  name: string
+  description?: string | null
+  createdAt: string
+
+  /** Cantidad de épicas asignadas a este equipo */
+  epicCount: number
+  /** Total de tickets sumando todas sus épicas */
+  totalTickets: number
+  /** Tickets completados sumando todas sus épicas */
+  completedTickets: number
+  /** Progreso agregado (0-100) del equipo completo */
+  progress: number
+  /** Cantidad de integrantes registrados */
+  memberCount: number
+}
+
+/**
+ * Integrante de un Equipo. Puede ser "suelto" (userId null — un estudiante
+ * sin cuenta en CoreStream) o vinculado a un User real ya existente en el
+ * sistema. Ver docstring de backend/app/models/team_member.py.
+ */
+export interface TeamMember {
+  id: string
+  name: string
+  email?: string | null
+  userId?: string | null
+}
+
+/**
+ * Detalle de un equipo con sus épicas completas e integrantes (vista "Equipos")
+ */
+export interface TeamDetail extends Team {
+  epics: Epic[]
+  members: TeamMember[]
 }
 
 /**

@@ -507,6 +507,11 @@ export default {
     targetApplication: 'Application cible',
     saveEpic: 'Enregistrer l\'épique',
     ticketTitlePlaceholder: 'Titre du ticket...',
+    epicTeamLabel: 'Équipe',
+    epicNoTeam: 'Aucune équipe assignée',
+    epicTeamHint: 'Regroupez cette épopée avec les autres de la même équipe pour les voir et les évaluer ensemble dans "Équipes".',
+    newTeamPlaceholder: 'Nom de la nouvelle équipe...',
+    newTeamButton: '+ Nouvelle équipe',
   },
 
   // ==========================================

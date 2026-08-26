@@ -8,6 +8,8 @@ from .meeting import AttendanceStatus, Meeting, MeetingAttendance, MeetingType
 from .notification import Notification, NotificationType
 from .role import Role, UserRole
 from .subtask import Subtask
+from .team import Team
+from .team_member import TeamMember
 from .ticket import SupportSeverity, Ticket, TicketPriority, TicketStatus, TicketType
 from .ticket_event import TicketEvent, TicketEventType
 from .user import User
@@ -20,6 +22,8 @@ __all__ = [
     "User",
     "Application",
     "Epic",
+    "Team",
+    "TeamMember",
     "Ticket",
     "TicketStatus",
     "TicketPriority",

@@ -44,6 +44,14 @@ from app.schemas.subtask import (
     SubtaskResponse,
     SubtaskUpdate,
 )
+from app.schemas.team import (
+    TeamCreate,
+    TeamDetailResponse,
+    TeamMemberCreate,
+    TeamMemberEntry,
+    TeamResponse,
+    TeamUpdate,
+)
 from app.schemas.ticket import (
     TicketComplete,
     TicketCreate,
@@ -105,6 +113,13 @@ __all__ = [
     "EpicUpdate",
     "EpicReorder",
     "EpicResponse",
+    # Esquemas de Equipo
+    "TeamCreate",
+    "TeamUpdate",
+    "TeamResponse",
+    "TeamDetailResponse",
+    "TeamMemberCreate",
+    "TeamMemberEntry",
     # Esquemas de Ticket
     "TicketCreate",
     "TicketUpdate",
