@@ -483,14 +483,15 @@ export const useTicketsStore = defineStore('tickets', () => {
    * @returns Promise<Ticket>
    * @throws Error si prLink no es válido
    */
-  const completeTicket = async (ticketId: string, prLink: string): Promise<Ticket> => {
+  const completeTicket = async (ticketId: string, prLink?: string): Promise<Ticket> => {
     isLoading.value = true
     error.value = null
 
     try {
-      // Validar PR link
+      // El PR ya no es obligatorio para completar — solo se valida el
+      // formato si efectivamente se ingresó un enlace.
       const prUrlRegex = /^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\//i
-      if (!prUrlRegex.test(prLink)) {
+      if (prLink && !prUrlRegex.test(prLink)) {
         throw new Error('El enlace de PR debe ser válido (GitHub, GitLab o Bitbucket)')
       }
 

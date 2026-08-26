@@ -149,29 +149,33 @@ class TicketMoveEpic(BaseModel):
 class TicketComplete(BaseModel):
     """
     Esquema para marcar un ticket como completado.
-    Requiere proporcionar un enlace a la solicitud de cambio (PR).
-    
+    El enlace a la solicitud de cambio (PR) es opcional.
+
     Atributos:
-        pr_link: URL válida a la solicitud de cambio en GitHub, GitLab o Bitbucket
+        pr_link: URL opcional a la solicitud de cambio en GitHub, GitLab o Bitbucket
     """
-    pr_link: str = Field(..., max_length=500)
+    pr_link: Optional[str] = Field(None, max_length=500)
 
     @field_validator("pr_link")
     @classmethod
-    def validate_pr_link(cls, v: str) -> str:
+    def validate_pr_link(cls, v: Optional[str]) -> Optional[str]:
         """
-        Valida que el enlace sea una URL válida hacia un repositorio soportado.
-        Acepta URLs de GitHub, GitLab y Bitbucket.
-        
+        Si se proporciona un enlace, valida que sea una URL válida hacia un
+        repositorio soportado (GitHub, GitLab o Bitbucket). Un valor vacío o
+        ausente es válido, ya que el PR es opcional.
+
         Args:
             v: URL del PR a validar
-            
+
         Returns:
-            La URL validada
-            
+            La URL validada, o None si no se proporcionó
+
         Raises:
-            ValueError: Si la URL no es válida o no es de un repositorio soportado
+            ValueError: Si se proporcionó una URL pero no es válida o no es de un repositorio soportado
         """
+        if v is None or v.strip() == "":
+            return None
+
         valid_domains = ("github.com", "gitlab.com", "bitbucket.org")
         if not any(domain in v.lower() for domain in valid_domains):
             raise ValueError("El PR debe ser de GitHub, GitLab o Bitbucket")

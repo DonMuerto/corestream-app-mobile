@@ -16,7 +16,7 @@ Diagrama de transiciones de estado:
 """
 
 from datetime import datetime, timezone
-from typing import Union
+from typing import Optional, Union
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -393,20 +393,20 @@ class TicketStateMachine:
     async def transition_to_completed(
         ticket,
         current_user,
-        pr_link: str,
+        pr_link: Optional[str],
         db: AsyncSession,
     ) -> dict:
         """
         Completa un ticket transitando a COMPLETED con validaciones específicas.
 
         Detiene el timer, registra el timestamp de completación en
-        ticket.completed_at, vincula el PR link, y registra el evento
-        con timestamp preciso.
+        ticket.completed_at, vincula el PR link (opcional), y registra el
+        evento con timestamp preciso.
 
         Args:
             ticket:       ORM Ticket a completar.
             current_user: Usuario que completa el ticket.
-            pr_link:      URL del pull request asociado.
+            pr_link:      URL opcional del pull request asociado.
             db:           Sesión async de SQLAlchemy.
 
         Returns:

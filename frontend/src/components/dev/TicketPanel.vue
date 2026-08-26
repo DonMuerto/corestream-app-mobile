@@ -71,7 +71,7 @@
         <!-- PR Link -->
         <div class="px-6 py-4 border-b border-[var(--border-subtle)]">
           <label class="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2">
-            Enlace del Pull Request
+            Enlace del Pull Request (opcional)
           </label>
           <input
             data-cy="pr-link-input"
@@ -127,17 +127,17 @@
             data-cy="btn-completar"
             v-if="ticket?.status === 'IN_PROGRESS'"
             @click="handleComplete"
-            :disabled="!prLinkValid || isCompleting"
+            :disabled="!canComplete || isCompleting"
             class="w-full flex items-center justify-center gap-2 font-bold py-3 rounded-xl transition-all duration-200 mb-3"
-            :class="prLinkValid
+            :class="canComplete
               ? 'bg-[var(--lime)] text-[var(--dark-gray)] hover:brightness-95 cursor-pointer'
               : 'bg-[var(--bg-panel)] text-[var(--text-muted)] cursor-not-allowed opacity-60'"
           >
             <span>✓</span>
             <span>{{ isCompleting ? 'Completando...' : 'Completar Ticket' }}</span>
           </button>
-          <p v-if="ticket?.status === 'IN_PROGRESS' && !prLinkValid" class="text-xs text-[var(--text-muted)] text-center mb-3">
-            ⚠ Requiere PR válido para completar
+          <p v-if="ticket?.status === 'IN_PROGRESS' && !canComplete" class="text-xs text-[var(--text-muted)] text-center mb-3">
+            ⚠ El enlace de PR ingresado no es válido
           </p>
 
           <div class="grid grid-cols-2 gap-3">
@@ -375,6 +375,11 @@ const prLinkValid = computed(() => {
   return patterns.some(p => p.test(prLink.value))
 })
 
+// El PR ya no es obligatorio para completar un ticket: se puede completar
+// sin enlace, o con uno que sea válido. Solo bloquea si escribieron algo
+// que no matchea ningún formato soportado (evita un typo silencioso).
+const canComplete = computed(() => !prLink.value || prLinkValid.value)
+
 const formattedTime = computed(() => {
   const h = Math.floor(elapsedSeconds.value / 3600)
   const m = Math.floor((elapsedSeconds.value % 3600) / 60)
@@ -510,10 +515,10 @@ async function handleStart() {
 }
 
 async function handleComplete() {
-  if (!prLinkValid.value || !props.ticket?.id || isCompleting.value) return
+  if (!canComplete.value || !props.ticket?.id || isCompleting.value) return
   isCompleting.value = true
   try {
-    await ticketsStore.completeTicket(props.ticket.id, prLink.value)
+    await ticketsStore.completeTicket(props.ticket.id, prLink.value || undefined)
     emit('updated', props.ticket.id)
     emit('close')
   } catch (e) {

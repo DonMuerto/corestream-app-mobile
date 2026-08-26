@@ -227,7 +227,7 @@
         <!-- ================================================================ -->
         <div class="p-6 border-b border-[var(--border-subtle)] space-y-3">
           <label class="text-sm font-semibold text-[var(--text-primary)]">
-            Enlace del Pull Request
+            Enlace del Pull Request (opcional)
           </label>
           <div class="relative">
             <input
@@ -253,7 +253,7 @@
             URL no válida. Asegúrate de usar GitHub, GitLab o Bitbucket.
           </p>
           <p v-if="isPrLinkValid" class="text-xs text-[var(--teal)]">
-            ✓ PR válido — El botón Completar está habilitado
+            ✓ PR válido
           </p>
         </div>
         </div>
@@ -271,7 +271,7 @@
         <div class="flex-shrink-0 p-6 bg-[var(--bg-card)] border-t border-[var(--border-subtle)]">
             <ActionDock
               :ticket="ticketWithCurrentStatus"
-              :is-pr-valid="isPrLinkValid"
+              :is-pr-valid="canComplete"
               @start="handleStart"
               @complete="handleComplete"
               @question="handleQuestion"
@@ -537,6 +537,9 @@ const isPrLinkValid = computed(() => {
   return prUrlRegex.test(url)
 })
 
+// El PR es opcional: sólo bloqueamos "Completar" si se ingresó un link y es inválido
+const canComplete = computed(() => editedPrLink.value.trim() === '' || isPrLinkValid.value)
+
 // CS-023: Verificar si el usuario actual es Admin o Team Leader
 const isAdminOrLeader = computed(() => {
   const userRole = authStore.user?.role
@@ -699,15 +702,15 @@ const handleStart = async () => {
 }
 
 const handleComplete = async () => {
-  // 1. Doble validación de seguridad en el Frontend
-  if (!isPrLinkValid.value) {
-    dialogStore.alert('⚠️ Por favor ingresa un link de PR válido antes de completar el ticket.');
+  // 1. Doble validación de seguridad en el Frontend (el PR es opcional)
+  if (!canComplete.value) {
+    dialogStore.alert('⚠️ El enlace de PR ingresado no es válido. Corrígelo o bórralo para completar el ticket.');
     return;
   }
 
   try {
     // 2. ¡EL ARREGLO ESTÁ AQUÍ! Usamos la ruta oficial de tu API
-    await api.tickets.complete(props.ticket.id, editedPrLink.value);
+    await api.tickets.complete(props.ticket.id, editedPrLink.value.trim() || undefined);
 
     // 3. Si el backend dice "OK", disparamos la magia visual
     confettiRef.value?.fireConfetti();

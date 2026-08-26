@@ -1071,10 +1071,10 @@ const realApi = {
      * @param prLink - Link del Pull Request
      * @returns Ticket actualizado
      */
-    complete: async (ticketId: string, prLink: string): Promise<Ticket> => {
+    complete: async (ticketId: string, prLink?: string): Promise<Ticket> => {
       const response = await apiClient.post<any>(
         `/tickets/${ticketId}/complete`,
-        { pr_link: prLink }
+        { pr_link: prLink || undefined }
       )
       return toTicket(response.data)
     },

@@ -1077,11 +1077,11 @@ const handleTicketAction = async (payload: any) => {
     if (action === 'complete') {
       const prUrl = data?.prUrl || (selectedTicket.value ? selectedTicket.value.prLink : '')
       const prUrlRegex = /^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\//i
-      if (!prUrl || !prUrlRegex.test(prUrl)) {
-        dialogStore.alert('El enlace de PR debe ser válido (GitHub, GitLab o Bitbucket) antes de completar el ticket.')
+      if (prUrl && !prUrlRegex.test(prUrl)) {
+        dialogStore.alert('El enlace de PR debe ser válido (GitHub, GitLab o Bitbucket) o dejarse vacío.')
         return
       }
-      await ticketsStore.completeTicket(ticketId, prUrl)
+      await ticketsStore.completeTicket(ticketId, prUrl || undefined)
     } else if (action === 'redirect') {
       await ticketsStore.redirectTicket(ticketId, data.toUserId, data.reason)
     }

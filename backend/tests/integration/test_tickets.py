@@ -236,10 +236,10 @@ async def test_no_se_puede_completar_desde_todo(client, dev_headers, ticket):
     assert res.status_code in (400, 409, 422)
 
 
-async def test_completar_exige_pr_link(client, dev_headers, ticket):
+async def test_completar_sin_pr_link_es_valido(client, dev_headers, ticket):
     await client.post(f"/api/tickets/{ticket['id']}/start", json={}, headers=dev_headers)
     res = await client.post(f"/api/tickets/{ticket['id']}/complete", json={}, headers=dev_headers)
-    assert res.status_code in (400, 422)
+    assert res.status_code == 200
 
 
 async def test_pregunta_exige_longitud_minima(client, dev_headers, ticket):

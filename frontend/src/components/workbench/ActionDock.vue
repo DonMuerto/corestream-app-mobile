@@ -71,13 +71,13 @@
             ? 'bg-[var(--lime)] hover:bg-[var(--lime-90)] text-[var(--dark-gray)]'
             : 'bg-[var(--bg-panel)] hover:bg-[var(--bg-panel)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-secondary)]'
         ]"
-        :title="!isPrLinkValid ? 'Requiere PR válido en el campo de arriba' : 'Completar ticket'"
+        :title="!isPrLinkValid ? 'El enlace de PR ingresado no es válido' : 'Completar ticket'"
       >
         <Icon icon="mdi:check-circle" class="text-lg" />
         Completar Ticket
       </button>
       <p v-if="!isPrLinkValid" class="text-xs text-[var(--text-muted)]">
-        ⚠️ Requiere PR válido
+        ⚠️ El enlace de PR ingresado no es válido
       </p>
     </div>
 
@@ -320,7 +320,8 @@ onMounted(async () => {
  */
 const isPrLinkValid = computed(() => {
   // Ahora usamos directamente la validación que viene en tiempo real desde el panel padre
-  return props.isPrValid ?? false
+  // (el PR es opcional, así que por defecto se puede completar)
+  return props.isPrValid ?? true
 })
 
 /**
