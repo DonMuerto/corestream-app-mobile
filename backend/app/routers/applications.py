@@ -41,7 +41,7 @@ _MANAGERS = [UserRole.ADMIN, UserRole.TEAM_LEADER]
 )
 async def list_applications(
     skip: int = Query(0, ge=0, description="Número de aplicaciones a saltar"),
-    limit: int = Query(20, ge=1, le=100, description="Máximo de aplicaciones a retornar"),
+    limit: int = Query(100, ge=1, le=500, description="Máximo de aplicaciones a retornar"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> List[ApplicationResponse]:

@@ -111,7 +111,10 @@ export const useApplicationsStore = defineStore('applications', () => {
     error.value = null
 
     try {
-      const data = await api.applications.list()
+      // El backend pagina con un límite por defecto (ver applications.py);
+      // lo pedimos explícito y alto para no depender de ese default y
+      // ocultar aplicaciones silenciosamente si el usuario tiene muchas.
+      const data = await api.applications.list({ limit: 500 })
       const normalized = Array.isArray(data)
         ? data
         : ((data as any)?.items || (data as any)?.data || [])

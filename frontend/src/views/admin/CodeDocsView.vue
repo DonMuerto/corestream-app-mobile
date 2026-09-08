@@ -409,7 +409,7 @@ onMounted(async () => {
 
 async function loadEpicTitles() {
   try {
-    const apps = await api.applications.list()
+    const apps = await api.applications.list({ limit: 500 })
     const appList = Array.isArray(apps) ? apps : (apps as any)?.data ?? []
     for (const app of appList) {
       try {

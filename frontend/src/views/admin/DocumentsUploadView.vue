@@ -185,7 +185,7 @@ onMounted(async () => {
 const loadContextData = async () => {
   isLoadingContext.value = true
   try {
-    const apps = await api.applications.list()
+    const apps = await api.applications.list({ limit: 500 })
     applications.value = Array.isArray(apps) ? apps : []
 
     for (const app of applications.value) {
