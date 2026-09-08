@@ -145,7 +145,7 @@ const loadContextData = async () => {
 
   try {
     // Cargar épicas de todas las aplicaciones disponibles
-    const apps = await api.applications.list()
+    const apps = await api.applications.list({ limit: 500 })
     const appList = Array.isArray(apps) ? apps : []
 
     for (const app of appList) {

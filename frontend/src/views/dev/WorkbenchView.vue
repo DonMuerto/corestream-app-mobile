@@ -395,7 +395,7 @@ const handleTicketUpdated = async (data: any) => {
 // Cargar aplicaciones del backend
 const fetchApplications = async () => {
   try {
-    const aplicaciones = await api.applications.list()
+    const aplicaciones = await api.applications.list({ limit: 500 })
     applications.value = aplicaciones
   } catch (error) {
     console.error('Error al cargar aplicaciones:', error)
