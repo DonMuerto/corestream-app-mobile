@@ -7,8 +7,9 @@ interno bajo un dominio público. Un ADMIN genera un enlace de invitación con
 un rol y un correo destino; el invitado lo usa una sola vez para crear su
 cuenta con la contraseña que él elija.
 
-No hay envío de correo: el enlace se copia desde la UI de administración y
-se entrega por fuera de la aplicación (Slack, correo manual, lo que sea).
+Además del enlace que ve el admin en la UI (y puede copiar a mano como
+fallback), si hay SMTP configurado (ver app/services/email_service.py) se le
+manda automáticamente por correo al invitado.
 """
 
 import hashlib
@@ -19,11 +20,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.database import get_db
 from app.middleware.auth import require_role
 from app.models import Invitation, Role, User, UserRole
 from app.schemas import InvitationAccept, InvitationCreate, InvitationInfo, InvitationResponse
 from app.services.auth_service import AuthService
+from app.services.email_service import send_invitation_email
 
 router = APIRouter(prefix="/api/invitations", tags=["Invitaciones"])
 
@@ -80,6 +83,11 @@ async def create_invitation(
     db.add(invitation)
     await db.commit()
     await db.refresh(invitation)
+
+    settings = get_settings()
+    frontend_origin = settings.ALLOWED_ORIGINS[0] if settings.ALLOWED_ORIGINS else ""
+    invite_url = f"{frontend_origin}/#/invite/{raw_token}"
+    await send_invitation_email(to_email=email, role=data.role, invite_url=invite_url)
 
     return InvitationResponse(
         id=invitation.id,

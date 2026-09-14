@@ -119,6 +119,19 @@ class Settings(BaseSettings):
     AZURE_TRANSLATOR_REGION: str = "eastus"
     AZURE_TRANSLATOR_ENDPOINT: str = "https://api.cognitive.microsofttranslator.com"
 
+    # Configuración de envío de correo (SMTP) para las invitaciones (plan 3.7.1).
+    # Vacío = feature desactivada: create_invitation sigue funcionando igual
+    # que antes (el admin copia el link a mano), solo que sin intentar
+    # mandar el correo. Mismo patrón que AZURE_TRANSLATOR_KEY más abajo.
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    # True -> SSL implícito (puerto 465). False -> STARTTLS (puerto 587).
+    SMTP_USE_SSL: bool = False
+    MAIL_FROM: str = ""
+    MAIL_FROM_NAME: str = "CoreStream"
+
     # Raíz de almacenamiento de archivos subidos por los usuarios. Tanto
     # routers/documents.py (subcarpeta "documents") como
     # services/file_service.py (subcarpeta "uploads") cuelgan de esta misma
