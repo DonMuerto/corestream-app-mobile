@@ -38,6 +38,7 @@
     <!-- Controls -->
     <div class="mb-6 flex gap-3">
       <button
+        v-if="authStore.user?.role === 'ADMIN' || authStore.user?.role === 'TEAM_LEADER'"
         @click="showAddMemberModal = true"
         class="px-4 py-2 bg-lime text-dark-gray font-semibold rounded-lg hover:bg-lime-90 transition-colors flex items-center gap-2"
       >
@@ -199,6 +200,68 @@
       </div>
     </div>
 
+    <!-- Pending invitations: people already invited who haven't accepted
+         yet, mainly those invited before SMTP sending existed and never
+         got anything. -->
+    <div
+      v-if="teamStore.pendingInvitations.length > 0"
+      class="mt-8 bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-sm border border-slate-200 dark:border-[var(--border-subtle)] overflow-hidden"
+    >
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-[var(--border-subtle)]">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white">📩 Invitaciones Pendientes</h2>
+        <p class="text-sm text-slate-600 dark:text-slate-300">
+          Personas invitadas que todavía no aceptan. Usa "Enviar correo" para mandarles
+          (o reenviarles) el enlace de invitación.
+        </p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[700px]">
+          <thead>
+            <tr class="border-b border-slate-200 dark:border-[var(--border-subtle)] bg-slate-50 dark:bg-[var(--bg-panel)]">
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Rol</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Estado</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 dark:divide-dark-gray-60">
+            <tr
+              v-for="invitation in teamStore.pendingInvitations"
+              :key="invitation.id"
+              class="hover:bg-slate-50 dark:hover:bg-[var(--bg-panel)] transition-colors"
+            >
+              <td class="px-6 py-3 text-sm text-slate-900 dark:text-white">{{ invitation.email }}</td>
+              <td class="px-6 py-3 text-sm text-slate-600 dark:text-slate-400">{{ roleLabel(invitation.role as UserRole) }}</td>
+              <td class="px-6 py-3">
+                <span
+                  v-if="invitation.isExpired"
+                  class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                >
+                  Caducada
+                </span>
+                <span
+                  v-else
+                  class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                >
+                  Pendiente
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right">
+                <button
+                  @click="sendInvitationEmail(invitation.id)"
+                  :disabled="isLoading"
+                  class="px-3 py-1 bg-teal/10 text-teal hover:bg-teal/20 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                  title="Enviar (o reenviar) el correo de invitación"
+                >
+                  📧 Enviar correo
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- MODAL 1: Agregar/Editar Miembro -->
     <Teleport to="body">
       <Transition name="fade">
@@ -296,7 +359,7 @@
                   class="w-full px-3 py-2 border border-slate-300 dark:border-[var(--border-subtle)] rounded-lg bg-white dark:bg-[var(--bg-panel)] text-slate-900 dark:text-white focus:outline-none focus:border-lime"
                 >
                   <option value="DEVELOPER">Desarrollador</option>
-                  <option value="TEAM_LEADER">Líder de Equipo</option>
+                  <option v-if="authStore.user?.role === 'ADMIN'" value="TEAM_LEADER">Líder de Equipo</option>
                 </select>
               </div>
 
@@ -467,9 +530,27 @@ const refreshTeam = async () => {
   try {
     await teamStore.fetchMembers()
     await loadRealStats()
+    await teamStore.fetchPendingInvitations()
   } catch (error) {
     console.error('Error al actualizar equipo:', error)
     dialogStore.alert('Error al actualizar el equipo')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const sendInvitationEmail = async (invitationId: string) => {
+  isLoading.value = true
+  try {
+    const emailSent = await teamStore.resendInvitation(invitationId)
+    if (emailSent) {
+      dialogStore.alert('Correo de invitación enviado')
+    } else {
+      dialogStore.alert('El enlace se renovó, pero no se pudo enviar el correo (revisa la configuración de SMTP)')
+    }
+  } catch (error) {
+    console.error('Error al enviar correo de invitación:', error)
+    dialogStore.alert('Error al enviar el correo de invitación')
   } finally {
     isLoading.value = false
   }
@@ -605,6 +686,7 @@ onMounted(async () => {
   try {
     await teamStore.fetchMembers()
     await loadRealStats()
+    await teamStore.fetchPendingInvitations()
   } catch (error) {
     console.error('Error al cargar equipo:', error)
   } finally {

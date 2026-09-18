@@ -319,15 +319,18 @@ async def update_application(
 )
 async def delete_application(
     app_id: UUID,
-    current_user: User = Depends(require_role(_MANAGERS)),
+    current_user: User = Depends(require_role([UserRole.ADMIN])),
     db: AsyncSession = Depends(get_db)
 ) -> None:
     """
     Elimina una aplicación del sistema de forma permanente.
 
+    ADMIN only: deleting a whole application (and everything under it) is
+    reserved for ADMIN — TEAM_LEADER keeps create/edit.
+
     Args:
         app_id (UUID): ID de la aplicación a eliminar
-        current_user (User): Usuario autenticado con rol ADMIN o TEAM_LEADER
+        current_user (User): Usuario autenticado con rol ADMIN
         db (AsyncSession): Sesión asíncrona de base de datos
 
     Raises:

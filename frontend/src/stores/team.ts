@@ -15,6 +15,15 @@ import { ref, computed } from 'vue'
 import type { User, Ticket, UserRole } from '@/types'
 import { api } from '@/services/api'
 
+export interface PendingInvitation {
+  id: string
+  email: string
+  role: string
+  createdAt: string
+  expiresAt: string
+  isExpired: boolean
+}
+
 export const useTeamStore = defineStore('team', () => {
   // ========== ESTADO REACTIVO ==========
 
@@ -49,6 +58,13 @@ export const useTeamStore = defineStore('team', () => {
    * ID de la aplicación actual para contexto
    */
   const currentAppId = ref<string | null>(null)
+
+  /**
+   * Unaccepted invitations (pending or expired), for the "Send email"
+   * button — mainly for people invited before SMTP sending existed, who
+   * never got anything.
+   */
+  const pendingInvitations = ref<PendingInvitation[]>([])
 
   // ========== GETTERS COMPUTADOS ==========
 
@@ -205,6 +221,51 @@ export const useTeamStore = defineStore('team', () => {
       const message = err instanceof Error ? err.message : 'Error al invitar miembro'
       error.value = message
       console.error('Error en inviteMember:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Fetches unaccepted invitations. ADMIN sees all; TEAM_LEADER only the
+   * ones they created (see backend/app/routers/invitations.py).
+   */
+  const fetchPendingInvitations = async (): Promise<void> => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      pendingInvitations.value = await api.invitations.listPending()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al cargar invitaciones pendientes'
+      error.value = message
+      console.error('Error en fetchPendingInvitations:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Resends a pending invitation email with a new token and expiration
+   * (the original token is never stored in plaintext, so there's no way
+   * to resend the same link).
+   *
+   * @returns true if the email went out (SMTP configured and no errors)
+   */
+  const resendInvitation = async (invitationId: string): Promise<boolean> => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const { emailSent } = await api.invitations.resend(invitationId)
+      await fetchPendingInvitations()
+      return emailSent
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al reenviar la invitación'
+      error.value = message
+      console.error('Error en resendInvitation:', err)
       throw err
     } finally {
       isLoading.value = false
@@ -470,6 +531,7 @@ export const useTeamStore = defineStore('team', () => {
     unassignedTickets.value = []
     currentAppId.value = null
     showAddModal.value = false
+    pendingInvitations.value = []
     error.value = null
   }
 
@@ -481,6 +543,7 @@ export const useTeamStore = defineStore('team', () => {
     error,
     showAddModal,
     currentAppId,
+    pendingInvitations,
     // Getters
     leaders,
     developers,
@@ -494,6 +557,8 @@ export const useTeamStore = defineStore('team', () => {
     // Acciones
     fetchMembers,
     inviteMember,
+    fetchPendingInvitations,
+    resendInvitation,
     updateMember,
     deleteMember,
     promoteToLeader,

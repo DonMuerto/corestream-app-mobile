@@ -16,10 +16,12 @@ Definidos en `app/models/role.py` (`UserRole`) y reflejados en la tabla
   abajo.
 - **TEAM_LEADER** — gestiona el trabajo de su equipo: puede hacer todo lo que
   hace un DEVELOPER sobre tickets propios, más las acciones de gestión
-  (crear/editar/borrar/reasignar tickets y épicas, crear/editar/borrar
-  aplicaciones, resolver preguntas bloqueantes ajenas, redirigir tickets,
-  gestionar reuniones e incidentes). No puede invitar usuarios, cambiar
-  roles ni resetear contraseñas — eso queda exclusivo de ADMIN.
+  (crear/editar/reasignar tickets y épicas, crear/editar aplicaciones,
+  resolver preguntas bloqueantes ajenas, redirigir tickets, gestionar
+  reuniones e incidentes, invitar nuevos DEVELOPER a la plataforma). No
+  puede borrar aplicaciones/épicas/equipos/tickets (solo ADMIN), ni cambiar
+  roles, resetear contraseñas o invitar a otro TEAM_LEADER/ADMIN — eso
+  queda exclusivo de ADMIN.
 - **DEVELOPER** — ejecuta el trabajo: solo puede actuar sobre tickets/
   subtareas/documentos que le pertenecen (asignado o autor de la carga).
 
@@ -53,20 +55,25 @@ sobre tickets, usadas por `routers/tickets.py`, `routers/subtasks.py` y
 | Acción | ADMIN | TEAM_LEADER | DEVELOPER |
 |---|---|---|---|
 | Listar / ver | ✅ | ✅ | ✅ |
-| Crear / editar / borrar | ✅ | ✅ | ❌ |
+| Crear / editar | ✅ | ✅ | ❌ |
+| Borrar | ✅ | ❌ | ❌ |
 
 Antes era ADMIN-only: obligaba al admin a crear cada proyecto nuevo en
 persona, sin poder delegarlo en quien lleva el día a día del equipo. Se
 extendió a TEAM_LEADER siguiendo el mismo criterio que ya aplicaba a
 épicas/tickets — invitar usuarios, cambiar roles y resetear contraseñas
-siguen siendo exclusivos de ADMIN (ver más abajo).
+siguen siendo exclusivos de ADMIN (ver más abajo). Borrar (con todo lo que
+cuelga de la aplicación) se acotó después a ADMIN únicamente: TEAM_LEADER
+gestiona el trabajo del día a día, pero un borrado permanente queda a
+criterio de quien administra el convenio con la universidad.
 
 ### Épicas (`/api/applications/{app_id}/epics`)
 
 | Acción | ADMIN | TEAM_LEADER | DEVELOPER |
 |---|---|---|---|
 | Listar / ver | ✅ | ✅ | ✅ |
-| Crear / editar / borrar / reordenar | ✅ | ✅ | ❌ |
+| Crear / editar / reordenar | ✅ | ✅ | ❌ |
+| Borrar | ✅ | ❌ | ❌ |
 
 ### Equipos (`/api/teams`)
 
@@ -79,11 +86,16 @@ tabla: nadie salvo ADMIN/TEAM_LEADER necesita verlos.
 | Acción | ADMIN | TEAM_LEADER | DEVELOPER |
 |---|---|---|---|
 | Listar / ver detalle | ✅ | ✅ | ❌ (403, sin caso de uso) |
-| Crear / editar / borrar | ✅ | ✅ | ❌ |
+| Crear / editar | ✅ | ✅ | ❌ |
+| Agregar / quitar integrante | ✅ | ✅ | ❌ |
+| Borrar equipo | ✅ | ❌ | ❌ |
 
 Borrar un equipo no borra sus épicas: `epics.team_id` queda en `NULL`
 (`ondelete="SET NULL"`) — el trabajo ya hecho nunca se pierde por reordenar
-o eliminar la etiqueta de agrupación.
+o eliminar la etiqueta de agrupación. El borrado del agrupador en sí se
+acotó a ADMIN por el mismo criterio que aplicaciones/épicas/tickets;
+agregar o quitar integrantes de la lista del equipo (no destructivo sobre
+trabajo entregado) sigue disponible para TEAM_LEADER.
 
 ### Tickets (`/api/tickets`)
 
@@ -93,7 +105,7 @@ o eliminar la etiqueta de agrupación.
 | Crear | ✅ | ✅ | ❌ | ❌ |
 | Editar campos / mover de épica / reordenar | ✅ | ✅ | ✅ | ❌ |
 | Reasignar (`assignee_id` en el body de editar) | ✅ | ✅ | ❌ | ❌ |
-| Borrar | ✅ | ✅ | ❌ | ❌ |
+| Borrar | ✅ | ❌ | ❌ | ❌ |
 | Iniciar (`/start`) | ❌ (`require_non_admin`) | ✅ si no asignado o es él, ❌ si es de otro | ✅ (reclama si estaba libre) | ❌ |
 | Completar (`/complete`) | ❌ | ❌ salvo que sea el asignado | ✅ | ❌ |
 | Levantar pregunta bloqueante (`/question`) | ❌ | ❌ salvo que sea el asignado | ✅ | ❌ |
@@ -109,6 +121,10 @@ Notas:
   la fase de limpieza (fase 9).
 - `require_non_admin` es una decisión de producto explícita: un ADMIN no
   ejecuta trabajo de ticket, solo lo gestiona.
+- Borrar un ticket se acotó de ADMIN/TEAM_LEADER a solo ADMIN (mismo
+  criterio que aplicaciones/épicas/equipos); borrar subtareas individuales
+  no se tocó — sigue bajo `assert_can_manage_ticket` del ticket padre,
+  porque es una acción de alcance mucho menor que borrar el ticket entero.
 
 ### Subtareas (`/api/tickets/{ticket_id}/subtasks`)
 
@@ -147,8 +163,21 @@ distinción de rol.
 | Listar usuarios | ✅ | ✅ | ❌ |
 | Ver perfil propio (`/me`) | ✅ | ✅ | ✅ |
 | Editar / borrar / cambiar rol / resetear contraseña de otro usuario | ✅ | ❌ | ❌ |
-| Crear invitación | ✅ | ❌ | ❌ |
+| Crear invitación | ✅ (cualquier rol) | ✅ (solo rol DEVELOPER) | ❌ |
+| Listar invitaciones pendientes (`GET /invitations/pending`) | ✅ (todas) | ✅ (solo las que él creó) | ❌ |
+| Reenviar correo de invitación (`POST /invitations/{id}/resend`) | ✅ (cualquiera) | ✅ (solo las DEVELOPER que él creó) | ❌ |
 | Aceptar invitación / consultar token | público (sin autenticar) | | |
+
+TEAM_LEADER puede invitar para poder sumar desarrolladores a su propio
+equipo sin depender de ADMIN en cada alta (contexto: cada equipo de
+estudiantes tiene un Team Leader interno que es quien de verdad necesita
+traer gente a la plataforma; ADMIN — Karina — evalúa el conjunto). Está
+limitado a rol DEVELOPER: no puede crear otro TEAM_LEADER ni un ADMIN por
+invitación. El listado/reenvío de un TEAM_LEADER se filtra por
+`created_by_id` — no ve ni puede reenviar invitaciones creadas por otros.
+`resend` emite un token nuevo y renueva la expiración a 7 días: pensado
+tanto para invitaciones previas a que existiera el envío por SMTP (nunca
+se les mandó correo) como para invitaciones ya caducadas.
 
 ### Reuniones (`/api/meetings`)
 

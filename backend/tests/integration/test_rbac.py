@@ -107,6 +107,36 @@ async def test_dev_no_borra_epicas(client, dev_headers, epic):
     assert res.status_code == 403
 
 
+async def test_leader_no_borra_epicas(client, leader_headers, epic):
+    """
+    Deleting is reserved for ADMIN (same rule as applications/teams/
+    tickets); TEAM_LEADER keeps create/edit/reorder for epics.
+    """
+    res = await client.delete(f"/api/epics/{epic['id']}", headers=leader_headers)
+    assert res.status_code == 403
+
+
+async def test_admin_si_borra_epicas(client, admin_headers, application):
+    creada = await client.post(
+        "/api/epics/",
+        json={"application_id": application["id"], "title": "Épica borrable por admin"},
+        headers=admin_headers,
+    )
+    assert creada.status_code == 201, creada.text[:300]
+
+    res = await client.delete(f"/api/epics/{creada.json()['id']}", headers=admin_headers)
+    assert res.status_code == 204
+
+
+# ---------------------------------------------------------------------------
+# Aplicaciones
+# ---------------------------------------------------------------------------
+
+async def test_leader_no_borra_aplicaciones(client, leader_headers, application):
+    res = await client.delete(f"/api/applications/{application['id']}", headers=leader_headers)
+    assert res.status_code == 403
+
+
 # ---------------------------------------------------------------------------
 # Tickets
 # ---------------------------------------------------------------------------
@@ -114,9 +144,19 @@ async def test_dev_no_borra_epicas(client, dev_headers, epic):
 async def test_dev_no_borra_tickets_ajenos(client, dev2_headers, ticket):
     """
     El borrado es permanente y en cascada (subtareas, eventos, documentos):
-    solo ADMIN/TEAM_LEADER pueden ejecutarlo.
+    solo ADMIN puede ejecutarlo.
     """
     res = await client.delete(f"/api/tickets/{ticket['id']}", headers=dev2_headers)
+    assert res.status_code == 403
+
+
+async def test_leader_no_borra_tickets(client, leader_headers, ticket):
+    """
+    Deleting tickets was narrowed from ADMIN/TEAM_LEADER to ADMIN only:
+    TEAM_LEADER keeps create/edit/reassign but can't permanently destroy
+    work.
+    """
+    res = await client.delete(f"/api/tickets/{ticket['id']}", headers=leader_headers)
     assert res.status_code == 403
 
 
