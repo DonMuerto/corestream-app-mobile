@@ -515,20 +515,23 @@ async def update_ticket(
 )
 async def delete_ticket(
     ticket_id: UUID,
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEAM_LEADER])),
+    current_user: User = Depends(require_role([UserRole.ADMIN])),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Elimina un ticket del sistema.
 
-    Solo ADMIN o TEAM_LEADER (plan fase 4). Antes cualquier autenticado podía
-    borrar cualquier ticket — verificado en la auditoría: un DEVELOPER
-    lograba un 204 sobre un ticket ajeno, con borrado permanente en cascada
-    de subtareas, eventos y documentos.
+    Solo ADMIN. Antes cualquier autenticado podía borrar cualquier ticket —
+    verificado en la auditoría: un DEVELOPER lograba un 204 sobre un ticket
+    ajeno, con borrado permanente en cascada de subtareas, eventos y
+    documentos; se acotó primero a ADMIN/TEAM_LEADER (plan fase 4).
+
+    Later narrowed to ADMIN only, so TEAM_LEADER can manage (create/edit/
+    reassign) but not permanently delete work.
 
     Args:
         ticket_id (int): ID del ticket a eliminar
-        current_user (User): Usuario autenticado con rol ADMIN o TEAM_LEADER
+        current_user (User): Usuario autenticado con rol ADMIN
         db (AsyncSession): Sesión asíncrona de base de datos
 
     Raises:

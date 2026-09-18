@@ -130,8 +130,9 @@
               <h3 class="text-sm font-semibold text-[var(--text-primary)]">Descripción</h3>
               
               <div class="flex gap-2">
-                <button 
-                  @click="deleteTicket" 
+                <button
+                  v-if="isAdmin"
+                  @click="deleteTicket"
                   class="px-3 py-1.5 bg-[var(--priority-urg-bg)]/30 text-[var(--priority-urg-bg)] hover:bg-[var(--priority-urg-bg)] hover:text-[var(--text-primary)] border border-[var(--priority-urg-bg)]/50 rounded-lg text-xs font-medium transition-all"
                 >
                   🗑️ Eliminar
@@ -545,6 +546,9 @@ const isAdminOrLeader = computed(() => {
   const userRole = authStore.user?.role
   return userRole === UserRole.ADMIN || userRole === UserRole.TEAM_LEADER
 })
+
+// Deleting a ticket is ADMIN-only on the backend (docs/RBAC.md)
+const isAdmin = computed(() => authStore.user?.role === UserRole.ADMIN)
 
 // Mismo mapeo de color de prioridad que WorkbenchTicketCard/TicketList,
 // para que el punto de color coincida con el que se ve fuera del panel.

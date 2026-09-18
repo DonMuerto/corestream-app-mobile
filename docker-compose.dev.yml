@@ -109,6 +109,15 @@ services:
     command: npm run dev -- --host 0.0.0.0
     ports:
       - "127.0.0.1:5173:5173"
+    # docker-compose.yml caps this service at 256m for the built nginx
+    # image (production). The Vite dev server (esbuild pre-bundling, HMR,
+    # full node process) needs much more — under 256m esbuild's service
+    # gets OOM-killed right after startup and the container crash-loops.
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
     healthcheck:
       test: ["CMD", "wget", "-qO-", "--timeout=3", "http://127.0.0.1:5173/"]
       interval: 15s

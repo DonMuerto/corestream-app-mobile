@@ -76,6 +76,8 @@ from app.schemas.user import (
     InvitationAccept,
     InvitationCreate,
     InvitationInfo,
+    InvitationListItem,
+    InvitationResendResponse,
     InvitationResponse,
     LogoutRequest,
     RefreshRequest,
@@ -103,6 +105,8 @@ __all__ = [
     "InvitationCreate",
     "InvitationResponse",
     "InvitationInfo",
+    "InvitationListItem",
+    "InvitationResendResponse",
     "InvitationAccept",
     # Esquemas de Aplicación
     "ApplicationCreate",

@@ -15,6 +15,7 @@ manda automáticamente por correo al invitado.
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -24,7 +25,14 @@ from app.config import get_settings
 from app.database import get_db
 from app.middleware.auth import require_role
 from app.models import Invitation, Role, User, UserRole
-from app.schemas import InvitationAccept, InvitationCreate, InvitationInfo, InvitationResponse
+from app.schemas import (
+    InvitationAccept,
+    InvitationCreate,
+    InvitationInfo,
+    InvitationListItem,
+    InvitationResendResponse,
+    InvitationResponse,
+)
 from app.services.auth_service import AuthService
 from app.services.email_service import send_invitation_email
 
@@ -42,14 +50,25 @@ def _hash_token(token: str) -> str:
     response_model=InvitationResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Crear invitación",
-    description="Genera un enlace de invitación de un solo uso. Solo ADMIN.",
+    description=(
+        "Genera un enlace de invitación de un solo uso. ADMIN puede invitar con "
+        "cualquier rol; TEAM_LEADER solo puede invitar con rol DEVELOPER (para "
+        "sumar desarrolladores a su propio equipo, no para crear otros "
+        "TEAM_LEADER ni ADMIN)."
+    ),
 )
 async def create_invitation(
     data: InvitationCreate,
-    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEAM_LEADER])),
     db: AsyncSession = Depends(get_db),
 ) -> InvitationResponse:
     email = data.email.lower().strip()
+
+    if current_user.role.name == UserRole.TEAM_LEADER.value and data.role != UserRole.DEVELOPER.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Un TEAM_LEADER solo puede invitar con rol DEVELOPER",
+        )
 
     existing_user = await db.execute(select(User).where(User.email == email))
     if existing_user.scalars().first() is not None:
@@ -58,7 +77,7 @@ async def create_invitation(
             detail="Ya existe una cuenta con ese correo",
         )
 
-    # Una invitación pendiente y no caducada por correo, no varias acumulándose.
+    # One pending, non-expired invitation per email, not several piling up.
     pending = await db.execute(
         select(Invitation).where(
             Invitation.email == email,
@@ -95,6 +114,100 @@ async def create_invitation(
         role=invitation.role,
         token=raw_token,
         expires_at=invitation.expires_at,
+    )
+
+
+@router.get(
+    "/pending",
+    response_model=list[InvitationListItem],
+    summary="Listar invitaciones pendientes",
+    description=(
+        "Invitaciones sin usar (caducadas o no). ADMIN ve todas; TEAM_LEADER "
+        "solo las que él mismo creó — coherente con que solo puede invitar a "
+        "sus propios desarrolladores. Debe declararse antes de GET /{token} "
+        "para que 'pending' no se intente resolver como un token."
+    ),
+)
+async def list_pending_invitations(
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEAM_LEADER])),
+    db: AsyncSession = Depends(get_db),
+) -> list[InvitationListItem]:
+    query = select(Invitation).where(Invitation.used_at.is_(None))
+    if current_user.role.name == UserRole.TEAM_LEADER.value:
+        query = query.where(Invitation.created_by_id == current_user.id)
+    query = query.order_by(Invitation.created_at.desc())
+
+    result = await db.execute(query)
+    invitations = result.scalars().all()
+
+    return [
+        InvitationListItem(
+            id=inv.id,
+            email=inv.email,
+            role=inv.role,
+            created_at=inv.created_at,
+            expires_at=inv.expires_at,
+            is_expired=inv.is_expired,
+        )
+        for inv in invitations
+    ]
+
+
+@router.post(
+    "/{invitation_id}/resend",
+    response_model=InvitationResendResponse,
+    summary="Reenviar el correo de invitación",
+    description=(
+        "Pensado para invitaciones creadas antes de que existiera el envío "
+        "por SMTP (plan de correo, ver email_service.py), o para las que "
+        "caducaron sin que el invitado llegara a usarlas: emite un token "
+        "nuevo (el original nunca se guarda en claro, no hay forma de "
+        "reenviar el mismo enlace) y renueva la expiración a 7 días desde "
+        "ahora, en vez de crear una fila de invitación duplicada."
+    ),
+)
+async def resend_invitation(
+    invitation_id: UUID,
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEAM_LEADER])),
+    db: AsyncSession = Depends(get_db),
+) -> InvitationResendResponse:
+    result = await db.execute(select(Invitation).where(Invitation.id == invitation_id))
+    invitation = result.scalar_one_or_none()
+
+    if invitation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invitación no encontrada")
+
+    if current_user.role.name == UserRole.TEAM_LEADER.value and (
+        invitation.created_by_id != current_user.id or invitation.role != UserRole.DEVELOPER.value
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Un TEAM_LEADER solo puede reenviar invitaciones de DEVELOPER que él mismo creó",
+        )
+
+    if invitation.is_used:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Esta invitación ya fue usada")
+
+    raw_token = secrets.token_urlsafe(32)
+    invitation.token_hash = _hash_token(raw_token)
+    invitation.expires_at = datetime.now(timezone.utc) + timedelta(days=INVITATION_TTL_DAYS)
+    await db.commit()
+    await db.refresh(invitation)
+
+    settings = get_settings()
+    frontend_origin = settings.ALLOWED_ORIGINS[0] if settings.ALLOWED_ORIGINS else ""
+    invite_url = f"{frontend_origin}/#/invite/{raw_token}"
+    email_sent = await send_invitation_email(
+        to_email=invitation.email, role=invitation.role, invite_url=invite_url
+    )
+
+    return InvitationResendResponse(
+        id=invitation.id,
+        email=invitation.email,
+        role=invitation.role,
+        token=raw_token,
+        expires_at=invitation.expires_at,
+        email_sent=email_sent,
     )
 
 

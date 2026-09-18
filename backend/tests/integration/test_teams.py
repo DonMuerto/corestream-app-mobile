@@ -120,16 +120,19 @@ async def test_detalle_de_equipo_agrega_progreso_de_sus_epicas(
     assert body["epics"][0]["application_name"] is not None
 
 
-async def test_borrar_equipo_no_borra_sus_epicas(client, leader_headers, epic):
+async def test_borrar_equipo_no_borra_sus_epicas(client, admin_headers, leader_headers, epic):
     """
     ondelete=SET NULL: el trabajo ya hecho por un equipo no debe perderse
     solo porque se elimina o reorganiza la etiqueta de agrupación.
+
+    Deletes as ADMIN (not leader_headers): deleting a team is reserved for
+    ADMIN, see test_leader_no_borra_equipo below.
     """
     equipo = await client.post("/api/teams/", json={"name": "Equipo Borrable"}, headers=leader_headers)
     team_id = equipo.json()["id"]
     await client.put(f"/api/epics/{epic['id']}", json={"team_id": team_id}, headers=leader_headers)
 
-    res = await client.delete(f"/api/teams/{team_id}", headers=leader_headers)
+    res = await client.delete(f"/api/teams/{team_id}", headers=admin_headers)
     assert res.status_code == 204
 
     epica_res = await client.get(f"/api/epics/by-app/{epic['application_id']}", headers=leader_headers)
@@ -155,6 +158,19 @@ async def test_developer_no_puede_crear_equipos(client, dev_headers):
 async def test_admin_puede_gestionar_equipos(client, admin_headers):
     res = await client.post("/api/teams/", json={"name": "Equipo Admin"}, headers=admin_headers)
     assert res.status_code == 201
+
+
+async def test_leader_no_borra_equipo(client, leader_headers):
+    """
+    Create/edit and managing members stays available to TEAM_LEADER;
+    deleting the grouping itself is reserved for ADMIN (same rule as
+    applications/epics/tickets).
+    """
+    equipo = await client.post("/api/teams/", json={"name": "Equipo No Borrable"}, headers=leader_headers)
+    team_id = equipo.json()["id"]
+
+    res = await client.delete(f"/api/teams/{team_id}", headers=leader_headers)
+    assert res.status_code == 403
 
 
 # ---------------------------------------------------------------------------

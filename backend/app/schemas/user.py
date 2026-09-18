@@ -238,6 +238,30 @@ class InvitationInfo(BaseModel):
     is_used: bool
 
 
+class InvitationListItem(BaseModel):
+    """
+    What an ADMIN/TEAM_LEADER sees in the pending invitations list. No token
+    (or its hash): this list can't reconstruct the link, only decide who to
+    resend the email to.
+    """
+    id: UUID
+    email: str
+    role: str
+    created_at: datetime
+    expires_at: datetime
+    is_expired: bool
+
+
+class InvitationResendResponse(BaseModel):
+    """Result of resending an invitation: new link + whether the email went out."""
+    id: UUID
+    email: str
+    role: str
+    token: str
+    expires_at: datetime
+    email_sent: bool
+
+
 class InvitationAccept(BaseModel):
     full_name: str = Field(..., max_length=255)
     password: str = Field(..., max_length=128)

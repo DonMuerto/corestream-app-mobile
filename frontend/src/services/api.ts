@@ -681,6 +681,34 @@ const realApi = {
         password: data.password,
       })
     },
+
+    // Unaccepted invitations (for the "Send email" button — mainly the
+    // ones created before SMTP sending existed, or already expired).
+    listPending: async (): Promise<Array<{
+      id: string
+      email: string
+      role: string
+      createdAt: string
+      expiresAt: string
+      isExpired: boolean
+    }>> => {
+      const response = await apiClient.get<Array<Record<string, unknown>>>('/invitations/pending')
+      return response.data.map((d) => ({
+        id: String(d.id ?? ''),
+        email: String(d.email ?? ''),
+        role: String(d.role ?? ''),
+        createdAt: String(d.created_at ?? ''),
+        expiresAt: String(d.expires_at ?? ''),
+        isExpired: Boolean(d.is_expired),
+      }))
+    },
+
+    resend: async (invitationId: string): Promise<{ emailSent: boolean }> => {
+      const response = await apiClient.post<Record<string, unknown>>(
+        `/invitations/${invitationId}/resend`
+      )
+      return { emailSent: Boolean(response.data.email_sent) }
+    },
   },
 
   /**

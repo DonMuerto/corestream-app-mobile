@@ -217,9 +217,12 @@ async def update_team(
 )
 async def delete_team(
     team_id: UUID,
-    current_user: User = Depends(require_role(_MANAGERS)),
+    current_user: User = Depends(require_role([UserRole.ADMIN])),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    # ADMIN only: deleting the team grouping itself (not its members, see
+    # remove_team_member) is reserved for ADMIN — TEAM_LEADER keeps
+    # create/edit and managing members.
     result = await db.execute(select(Team).where(Team.id == team_id))
     team = result.scalar_one_or_none()
     if not team:

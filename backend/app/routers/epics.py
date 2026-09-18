@@ -345,15 +345,18 @@ async def update_epic(
 )
 async def delete_epic(
     epic_id: UUID,
-    current_user = Depends(require_role(_MANAGERS)),
+    current_user = Depends(require_role([UserRole.ADMIN])),
     db: AsyncSession = Depends(get_db)
 ) -> None:
     """
     Elimina una épica del sistema de forma permanente.
 
+    ADMIN only: deleting an epic (and all its tickets) is reserved for
+    ADMIN — TEAM_LEADER keeps create/edit/reorder.
+
     Args:
         epic_id (UUID): ID de la épica a eliminar
-        current_user (User): Usuario autenticado
+        current_user (User): Usuario autenticado con rol ADMIN
         db (AsyncSession): Sesión asíncrona de base de datos
 
     Raises:
