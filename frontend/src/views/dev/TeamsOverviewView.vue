@@ -89,6 +89,7 @@
                 {{ t('builderView.edit') }}
               </button>
               <button
+                v-if="isAdmin"
                 type="button"
                 class="rounded-lg border border-[var(--priority-urg-bg)]/60 bg-[var(--priority-urg-bg)] px-3 py-2 text-sm text-white transition hover:bg-[var(--priority-urg-bg)]/80"
                 @click="removeTeam(team)"
@@ -359,10 +360,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppHeader from '@/components/layout/AppHeader.vue'
-import { useTeamsStore, useApplicationsStore } from '@/stores'
+import { useTeamsStore, useApplicationsStore, useAuthStore } from '@/stores'
 import { useDialogStore } from '@/stores/dialog'
 import { api } from '@/services/api'
 import type { Team, TeamDetail, TeamMember, User, Application, Epic } from '@/types'
@@ -371,6 +372,9 @@ const { t } = useI18n()
 const teamsStore = useTeamsStore()
 const applicationsStore = useApplicationsStore()
 const dialogStore = useDialogStore()
+const authStore = useAuthStore()
+// Deleting a team grouping is ADMIN-only on the backend (docs/RBAC.md)
+const isAdmin = computed(() => authStore.user?.role === 'ADMIN')
 
 const expandedTeamId = ref<string | null>(null)
 const teamDetail = ref<TeamDetail | null>(null)

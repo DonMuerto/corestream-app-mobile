@@ -99,6 +99,7 @@
                     {{ t('builderView.edit') }}
                   </button>
                   <button
+                    v-if="isAdmin"
                     type="button"
                     class="rounded-md border border-[var(--priority-urg-bg)]/60 bg-[var(--priority-urg-bg)] px-2 py-1 text-[11px] text-white transition hover:bg-[var(--priority-urg-bg)]/80"
                     @click.stop="removeApp(app)"
@@ -307,6 +308,7 @@
                         {{ t('builderView.edit') }}
                       </button>
                       <button
+                        v-if="isAdmin"
                         type="button"
                         class="rounded-lg border border-[var(--priority-urg-bg)]/60 bg-[var(--priority-urg-bg)] px-3 py-2 text-sm text-white transition hover:bg-[var(--priority-urg-bg)]/80"
                         @click="removeEpic(epic)"
@@ -620,6 +622,8 @@ const {
 const applications = computed(() => appsStore.sortedByName)
 const selectedApp = computed(() => appsStore.selectedApp)
 const epics = computed<any[]>(() => epicsStore.sortedByOrder)
+// Deleting an application or epic is ADMIN-only on the backend (docs/RBAC.md)
+const isAdmin = computed(() => authStore.user?.role === 'ADMIN')
 const overallProgress = computed(() => epicsStore.overallEpicsProgress)
 const allEpicsCollapsed = computed(() => epics.value.length > 0 && epics.value.every((epic: any) => epicsStore.collapsedEpics.has(epic.id)))
 
