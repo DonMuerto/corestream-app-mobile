@@ -34,6 +34,7 @@ migrate_working_dir/
 /coverage/
 .vercel/
 .vercel_flutter/
+.env*.local
 
 # Symbolication related
 app.*.symbols
