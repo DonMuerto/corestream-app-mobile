@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/config.dart';
 import '../core/theme.dart';
 import '../models/models.dart';
 import '../providers.dart';
@@ -322,7 +323,8 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SheetTitle(s('new_ticket'), subtitle: '${epic.name} — ${s('nt_sub')}'),
+          SheetTitle(s('new_ticket'),
+              subtitle: '${epic.name} — ${AppConfig.isSupabase ? 'Se guardará en la base de datos.' : s('nt_sub')}'),
           TextField(
             controller: controller,
             autofocus: true,

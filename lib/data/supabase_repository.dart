@@ -17,6 +17,7 @@ import 'repository.dart';
 class SupabaseRepository extends DemoRepository {
   SupabaseRepository({SupabaseClient? client})
       : _client = client ?? Supabase.instance.client {
+    simulationEnabled = false;
     _demoChangesSubscription = super.changes.listen(_forwardChange);
   }
 
@@ -186,7 +187,9 @@ class SupabaseRepository extends DemoRepository {
   @override
   Project? projectOfTicket(Ticket t) {
     final epic = _epicCache[t.epicId];
-    return epic == null ? null : _projectCache[epic.projectId];
+    return epic == null
+        ? super.projectOfTicket(t)
+        : _projectCache[epic.projectId];
   }
 
   List<Map<String, dynamic>> _rows(dynamic value) =>
