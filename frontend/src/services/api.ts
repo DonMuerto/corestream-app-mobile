@@ -327,7 +327,13 @@ const createApiClient = (): AxiosInstance => {
     async (error: AxiosError) => {
       const originalRequest = error.config as any
 
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      // A 401 from /auth/login means wrong credentials, not an expired
+      // session — retrying via /auth/refresh has no cookie to work with yet
+      // and its own 401 ("No se proporcionó refresh_token") was overwriting
+      // the real "Email o contraseña incorrectos" error from login.
+      const isLoginRequest = typeof originalRequest?.url === 'string' && originalRequest.url.includes('/auth/login')
+
+      if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
         originalRequest._retry = true
 
         try {
@@ -642,6 +648,7 @@ const realApi = {
       role: string
       token: string
       expiresAt: string
+      emailSent: boolean
     }> => {
       const response = await apiClient.post<Record<string, unknown>>('/invitations/', {
         email: data.email,
@@ -654,6 +661,7 @@ const realApi = {
         role: String(d.role ?? ''),
         token: String(d.token ?? ''),
         expiresAt: String(d.expires_at ?? ''),
+        emailSent: Boolean(d.email_sent),
       }
     },
 
