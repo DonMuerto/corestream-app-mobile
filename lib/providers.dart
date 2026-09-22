@@ -9,6 +9,7 @@ import 'core/i18n.dart';
 import 'data/api_repository.dart';
 import 'data/demo_repository.dart';
 import 'data/repository.dart';
+import 'data/supabase_repository.dart';
 import 'models/models.dart';
 import 'services/push_service.dart';
 
@@ -20,7 +21,14 @@ final prefsProvider = Provider<SharedPreferences>((ref) {
 });
 
 final repositoryProvider = Provider<CoreStreamRepository>((ref) {
-  final repo = AppConfig.isDemo ? DemoRepository() : ApiRepository(AppConfig.apiBaseUrl);
+  final CoreStreamRepository repo;
+  if (AppConfig.isSupabase) {
+    repo = SupabaseRepository();
+  } else if (AppConfig.isApi) {
+    repo = ApiRepository(AppConfig.apiBaseUrl);
+  } else {
+    repo = DemoRepository();
+  }
   ref.onDispose(repo.dispose);
   return repo;
 });

@@ -314,6 +314,7 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
   var priority = TicketPriority.medium;
   String? picked;
   String? error;
+  var saving = false;
   return showCsSheet(
     context,
     StatefulBuilder(
@@ -347,20 +348,33 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
           const SizedBox(height: 12),
           FilledButton.icon(
             icon: const Icon(Icons.add),
-            label: Text(s('save')),
-            onPressed: () async {
+            label: Text(saving ? 'Guardando…' : s('save')),
+            onPressed: saving ? null : () async {
               final title = controller.text.trim();
               if (title.length < 5) {
                 setState(() => error = s('nt_short'));
                 return;
               }
-              await ref.read(repositoryProvider).createTicket(
-                    epicId: epic.id,
-                    title: title,
-                    priority: priority,
-                    assigneeId: picked,
-                  );
-              if (ctx.mounted) Navigator.pop(ctx);
+              setState(() {
+                saving = true;
+                error = null;
+              });
+              try {
+                await ref.read(repositoryProvider).createTicket(
+                      epicId: epic.id,
+                      title: title,
+                      priority: priority,
+                      assigneeId: picked,
+                    );
+                if (ctx.mounted) Navigator.pop(ctx);
+              } catch (_) {
+                if (ctx.mounted) {
+                  setState(() {
+                    saving = false;
+                    error = 'No fue posible guardar el ticket. Revisa la conexión.';
+                  });
+                }
+              }
             },
           ),
         ],
