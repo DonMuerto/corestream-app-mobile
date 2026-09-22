@@ -227,6 +227,7 @@ class InvitationResponse(BaseModel):
     role: str
     token: str
     expires_at: datetime
+    email_sent: bool
 
 
 class InvitationInfo(BaseModel):

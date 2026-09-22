@@ -205,7 +205,7 @@ export const useTeamStore = defineStore('team', () => {
    *
    * @returns el enlace completo para copiar y entregar al invitado
    */
-  const inviteMember = async (data: { email: string; role: UserRole }): Promise<string> => {
+  const inviteMember = async (data: { email: string; role: UserRole }): Promise<{ link: string; emailSent: boolean }> => {
     isLoading.value = true
     error.value = null
 
@@ -216,7 +216,10 @@ export const useTeamStore = defineStore('team', () => {
       // servidor; nginx cae al fallback de index.html (sirve la SPA igual),
       // pero vue-router lee location.hash para decidir la ruta, lo ve vacío,
       // y el guard beforeEach termina mandando a /login por no haber sesión.
-      return `${window.location.origin}/#/invite/${invitation.token}`
+      return {
+        link: `${window.location.origin}/#/invite/${invitation.token}`,
+        emailSent: invitation.emailSent,
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al invitar miembro'
       error.value = message

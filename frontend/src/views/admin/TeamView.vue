@@ -279,6 +279,9 @@
                 Copia este enlace y entrégaselo a la persona invitada (por Slack, correo, etc.).
                 Solo se muestra una vez.
               </p>
+              <p v-if="!inviteEmailSent" class="text-sm text-amber-600 dark:text-amber-400">
+                No se pudo enviar el correo automático — comparte el enlace manualmente.
+              </p>
               <div class="flex gap-2">
                 <input
                   :value="inviteLink"
@@ -459,6 +462,7 @@ const isLoading = ref(false)
 const showAddMemberModal = ref(false)
 const showEditModal = ref(false)
 const inviteLink = ref<string | null>(null)
+const inviteEmailSent = ref(true)
 
 const formData = ref({
   fullName: '',
@@ -592,10 +596,12 @@ const saveMember = async () => {
     } else {
       // Invita al nuevo miembro: no crea la cuenta todavía, solo genera el
       // enlace. Se muestra en el propio modal en vez de cerrarlo.
-      inviteLink.value = await teamStore.inviteMember({
+      const result = await teamStore.inviteMember({
         email: formData.value.email,
         role: formData.value.role as UserRole,
       })
+      inviteLink.value = result.link
+      inviteEmailSent.value = result.emailSent
     }
   } catch (error) {
     console.error('Error al guardar miembro:', error)
@@ -609,6 +615,7 @@ const closeMemberModal = () => {
   showAddMemberModal.value = false
   showEditModal.value = false
   inviteLink.value = null
+  inviteEmailSent.value = true
   formData.value = { fullName: '', email: '', specialty: '', role: UserRole.DEVELOPER }
   editingMemberId.value = null
 }

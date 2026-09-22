@@ -19,6 +19,7 @@ import asyncio
 import logging
 import smtplib
 from email.message import EmailMessage
+from email.utils import formatdate, make_msgid
 
 from app.config import get_settings
 
@@ -32,6 +33,12 @@ def _send_sync(to_email: str, subject: str, html_body: str, text_body: str) -> N
     message["Subject"] = subject
     message["From"] = f"{settings.MAIL_FROM_NAME} <{settings.MAIL_FROM}>"
     message["To"] = to_email
+    # EmailMessage does not set these on its own. Missing Date/Message-ID is a
+    # spam signal for strict filters (Google/Microsoft, common on university
+    # domains) — they can accept the message at our SMTP hop and drop it
+    # downstream with no error on our side.
+    message["Date"] = formatdate(localtime=True)
+    message["Message-ID"] = make_msgid(domain=settings.MAIL_FROM.split("@")[-1])
     message.set_content(text_body)
     message.add_alternative(html_body, subtype="html")
 
