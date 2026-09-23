@@ -312,7 +312,9 @@ Future<void> showRedirectSheet(BuildContext context, WidgetRef ref, Ticket ticke
 Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required Epic epic}) {
   final s = ref.read(stringsProvider);
   final controller = TextEditingController();
+  final descriptionController = TextEditingController();
   var priority = TicketPriority.medium;
+  DateTime? dueDate;
   String? picked;
   String? error;
   var saving = false;
@@ -331,6 +333,12 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
             maxLength: 120,
             decoration: InputDecoration(labelText: s('nt_title'), errorText: error),
           ),
+          TextField(
+            controller: descriptionController,
+            maxLines: 3,
+            maxLength: 1000,
+            decoration: const InputDecoration(labelText: 'Descripción (opcional)'),
+          ),
           const SizedBox(height: 8),
           DropdownButtonFormField<TicketPriority>(
             initialValue: priority,
@@ -340,6 +348,22 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
                 DropdownMenuItem(value: p, child: Text(s('p_${p.wire}'))),
             ],
             onChanged: (v) => setState(() => priority = v ?? TicketPriority.medium),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.event_outlined),
+            label: Text(dueDate == null
+                ? 'Fecha límite (opcional)'
+                : 'Fecha límite: ${dueDate!.day}/${dueDate!.month}/${dueDate!.year}'),
+            onPressed: () async {
+              final selected = await showDatePicker(
+                context: ctx,
+                initialDate: dueDate ?? DateTime.now().add(const Duration(days: 7)),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 3650)),
+              );
+              if (selected != null) setState(() => dueDate = selected);
+            },
           ),
           const SizedBox(height: 12),
           Text('${s('assignee')} (${s('optional')})',
@@ -367,6 +391,8 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
                       title: title,
                       priority: priority,
                       assigneeId: picked,
+                      description: descriptionController.text,
+                      dueDate: dueDate,
                     );
                 if (ctx.mounted) Navigator.pop(ctx);
               } catch (_) {

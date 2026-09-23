@@ -161,7 +161,10 @@ abstract class CoreStreamRepository {
     required String title,
     required TicketPriority priority,
     String? assigneeId,
+    String? description,
+    DateTime? dueDate,
   });
+  Future<void> deleteTicket(String ticketId);
 
   // --- acciones de incidencias ---
   Future<void> takeIncident(String incidentId);

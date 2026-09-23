@@ -515,13 +515,21 @@ class ApiRepository implements CoreStreamRepository {
     required String title,
     required TicketPriority priority,
     String? assigneeId,
+    String? description,
+    DateTime? dueDate,
   }) =>
       _act(() => _dio.post('/tickets/', data: {
             'title': title,
             'epic_id': epicId,
             'priority': priority.wire,
             if (assigneeId != null) 'assignee_id': assigneeId,
+            if (description != null && description.trim().isNotEmpty) 'description': description.trim(),
+            if (dueDate != null) 'due_date': dueDate.toIso8601String(),
           }));
+
+  @override
+  Future<void> deleteTicket(String ticketId) =>
+      _act(() => _dio.delete('/tickets/$ticketId'));
 
   @override
   Future<void> takeIncident(String incidentId) =>
