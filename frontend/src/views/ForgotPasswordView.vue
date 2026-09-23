@@ -1,7 +1,7 @@
 <!--
-  Página pública para pedir el enlace de reset de contraseña.
-  Antes la única forma de recuperar una cuenta era que un ADMIN generara una
-  contraseña temporal a mano (POST /users/{id}/reset-password).
+  Public page to request the password reset link.
+  Previously the only recovery path was an ADMIN generating a temporary
+  password by hand (POST /users/{id}/reset-password).
 -->
 <template>
   <div
@@ -21,7 +21,7 @@
           ? 'bg-[#142730] shadow-[0_20px_60px_rgba(0,0,0,0.4)]'
           : 'bg-white shadow-[0_20px_60px_rgba(6,183,178,0.15),0_4px_16px_rgba(0,0,0,0.08)]'"
       >
-        <!-- Enlace enviado -->
+        <!-- Link sent -->
         <div v-if="sent" class="text-center space-y-4">
           <p class="text-sm" :class="isDark ? 'text-[#A1A9AC]' : 'text-[#5A686E]'">
             Si el correo existe, te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja
@@ -35,7 +35,7 @@
           </router-link>
         </div>
 
-        <!-- Formulario -->
+        <!-- Form -->
         <form v-else @submit.prevent="onSubmit" class="space-y-5">
           <p class="text-sm" :class="isDark ? 'text-[#A1A9AC]' : 'text-[#5A686E]'">
             Ingresa tu correo y te mandamos un enlace para elegir una nueva contraseña.

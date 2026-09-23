@@ -1,18 +1,17 @@
 """
-Servicio de envío de correo (plan 3.7.1).
+Email sending service (plan 3.7.1).
 
-Usado por el flujo de invitaciones (app/routers/invitations.py) para mandarle
-al invitado el link de invitación, y por el reset de contraseña de
-autoservicio (app/routers/auth.py) para mandar el link de recuperación.
+Used by the invitation flow (app/routers/invitations.py) to send the
+invitee their invite link, and by self-service password reset
+(app/routers/auth.py) to send the recovery link.
 
-Usa smtplib (stdlib) en vez de sumar una dependencia nueva — el envío es
-puntual (una invitación cada tanto), no justifica un cliente async dedicado.
-smtplib bloquea, así que se corre en threadpool vía asyncio.to_thread para no
-trabar el event loop de FastAPI.
+Uses smtplib (stdlib) instead of adding a new dependency — sending is
+occasional (one invitation every so often), not enough to justify a
+dedicated async client. smtplib blocks, so it runs in a threadpool via
+asyncio.to_thread to avoid blocking FastAPI's event loop.
 
-Si SMTP_HOST no está configurado, send_invitation_email no hace nada (noop)
-y devuelve False — así el entorno de desarrollo sigue funcionando sin SMTP,
-igual que antes de este cambio.
+If SMTP_HOST isn't configured, sending is a noop and returns False — so
+the dev environment keeps working without SMTP.
 """
 
 import asyncio
@@ -55,11 +54,11 @@ def _send_sync(to_email: str, subject: str, html_body: str, text_body: str) -> N
 
 async def _send(*, to_email: str, subject: str, html_body: str, text_body: str, log_label: str) -> bool:
     """
-    No lanza excepción si falla el envío — solo la loguea — para que un
-    problema de SMTP nunca tumbe la operación que lo dispara (la invitación
-    o el token de reset ya quedaron guardados independientemente del correo).
+    Never raises on send failure — only logs it — so an SMTP problem never
+    breaks the operation that triggered it (the invitation or reset token
+    are already saved regardless of the email).
 
-    Devuelve True si se mandó, False si SMTP no está configurado o falló.
+    Returns True if sent, False if SMTP isn't configured or it failed.
     """
     settings = get_settings()
     if not settings.SMTP_HOST or not settings.MAIL_FROM:

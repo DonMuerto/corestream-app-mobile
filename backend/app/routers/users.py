@@ -165,12 +165,12 @@ async def count_users(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
-    Declarado antes de /{user_id} a propósito: si fuera después, FastAPI
-    matchea /count contra ese path param primero y esto nunca se alcanza.
+    Declared before /{user_id} on purpose: if it came after, FastAPI would
+    match /count against that path param first and this would never fire.
 
-    list_users() pagina (limit=20 por defecto, tope 100) y TeamView no
-    reconstruye estos totales sumando páginas — necesita un conteo aparte
-    que no dependa de cuántas filas trajo la página actual.
+    list_users() paginates (limit=20 by default, capped at 100) and
+    TeamView doesn't reconstruct these totals by summing pages — it needs a
+    separate count that doesn't depend on how many rows the current page got.
     """
     result = await db.execute(
         select(Role.name, func.count(User.id))

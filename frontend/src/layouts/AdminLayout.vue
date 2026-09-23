@@ -30,12 +30,12 @@
           {{ t('nav.builder') }}
         </router-link>
 
-        <!-- Analytics/Incidents/Meetings/Team: TEAM_LEADER gestiona el día a
-             día del equipo, incluyendo invitar developers (backend ya lo
-             permite en analytics.py, incidents.py, meetings.py, users.py y
-             invitations.py), así que también las ve. code-docs/support
-             quedan exclusivas de ADMIN — son administración de la
-             plataforma en sí (config del sistema, soporte interno). -->
+        <!-- Analytics/Incidents/Meetings/Team: TEAM_LEADER manages the
+             team's day-to-day, including inviting developers (the backend
+             already allows it in analytics.py, incidents.py, meetings.py,
+             users.py and invitations.py), so they see these too.
+             code-docs/support stay ADMIN-only — platform administration
+             itself (system config, internal support). -->
         <template v-if="isAdminOrLeader">
           <router-link
             to="/admin/analytics"

@@ -67,16 +67,16 @@ export const useTeamStore = defineStore('team', () => {
   const pendingInvitations = ref<PendingInvitation[]>([])
 
   /**
-   * Página actual de la tabla de miembros en TeamView (paginación real,
-   * separada de `members`/`fetchMembers` — esos siguen trayendo el roster
-   * completo para los dropdowns de asignación, que no deben paginarse).
+   * Current page of TeamView's member table (real pagination, separate
+   * from `members`/`fetchMembers` — those still fetch the full roster for
+   * assignment dropdowns, which shouldn't be paginated).
    */
   const pagedMembers = ref<User[]>([])
   const membersPage = ref(1)
   const membersPageSize = 20
   const membersHasMore = ref(false)
 
-  /** Totales por rol, independientes de la página actual (para las stat cards). */
+  /** Totals by role, independent of the current page (for the stat cards). */
   const memberCounts = ref<{ total: number; byRole: Record<string, number> }>({
     total: 0,
     byRole: {},
@@ -178,10 +178,9 @@ export const useTeamStore = defineStore('team', () => {
   // ========== ACCIONES ==========
 
   /**
-   * Refleja un miembro actualizado en `members` y `pagedMembers` por igual —
-   * son dos fetches independientes (roster completo vs. página actual de
-   * TeamView), y una mutación remota debe verse en cualquiera de los dos
-   * arrays donde ese miembro esté presente.
+   * Reflects an updated member in both `members` and `pagedMembers` — two
+   * independent fetches (full roster vs. TeamView's current page), and a
+   * remote mutation must show up in whichever array holds that member.
    */
   const _syncMemberInPlace = (updated: User): void => {
     const i = members.value.findIndex(m => m.id === updated.id)
@@ -224,9 +223,9 @@ export const useTeamStore = defineStore('team', () => {
   }
 
   /**
-   * Trae una página de la tabla de miembros (TeamView). Pide un registro de
-   * más al backend para saber si hay página siguiente sin depender de un
-   * total — ese total aparte lo da fetchMemberCounts, para las stat cards.
+   * Fetches one page of TeamView's member table. Asks the backend for one
+   * extra row to know whether there's a next page without needing a total
+   * — that total comes separately from fetchMemberCounts, for the stat cards.
    */
   const fetchMembersPage = async (page: number = 1): Promise<void> => {
     isLoading.value = true

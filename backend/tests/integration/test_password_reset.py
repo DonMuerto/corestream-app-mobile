@@ -55,7 +55,7 @@ async def test_pide_reset_y_confirma_con_password_nueva(client):
 
 
 async def test_pedir_reset_para_correo_inexistente_no_revela_nada(client):
-    """Misma respuesta 200 exista o no la cuenta — evita enumerar correos."""
+    """Same 200 response whether or not the account exists — avoids enumerating emails."""
     res = await client.post(
         "/api/auth/password-reset/request", json={"email": "nadie@corestream-tests.com"}
     )

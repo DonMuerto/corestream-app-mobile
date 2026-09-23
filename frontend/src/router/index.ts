@@ -95,9 +95,9 @@ const routes: RouteRecordRaw[] = [
 
   {
     /**
-     * Reset de contraseña de autoservicio. Pública en ambos pasos: quien la
-     * pide todavía no está autenticado (a veces por eso mismo la pide), y
-     * quien la confirma llega con el token del correo, no con una sesión.
+     * Self-service password reset. Public on both steps: whoever requests
+     * it isn't authenticated yet (sometimes that's exactly why), and
+     * whoever confirms it arrives with the emailed token, not a session.
      */
     path: '/forgot-password',
     name: 'ForgotPassword',
@@ -242,11 +242,11 @@ const routes: RouteRecordRaw[] = [
          * Vista de gestión de equipo
          * Administración de usuarios, roles, permisos
          *
-         * TEAM_LEADER entra para invitar developers a su equipo (el propio
-         * componente ya oculta las acciones exclusivas de ADMIN: borrar,
-         * promover/degradar líder, asignar rol TEAM_LEADER). El backend ya
-         * lo permite en GET /users/ y POST /invitations/ — este guard se
-         * había quedado en ADMIN solo, bloqueando la página entera.
+         * TEAM_LEADER gets in to invite developers to their team (the
+         * component itself already hides ADMIN-only actions: delete,
+         * promote/demote leader, assign TEAM_LEADER role). The backend
+         * already allows it in GET /users/ and POST /invitations/ — this
+         * guard had been left ADMIN-only, blocking the whole page.
          */
         path: 'team',
         name: 'TeamManagement',

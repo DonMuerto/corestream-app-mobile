@@ -425,14 +425,14 @@ async def request_password_reset(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
-    Antes la única forma de recuperar una cuenta bloqueada era que un ADMIN
-    usara POST /users/{id}/reset-password. Este endpoint le da autoservicio
-    al propio usuario — útil en particular para quien quedó con la cuenta
-    creada por invitación pero sin poder entrar (contraseña olvidada/typeada
-    distinto al aceptar la invitación vs. al hacer login).
+    Previously the only recovery path was an ADMIN using
+    POST /users/{id}/reset-password. This gives self-service to the user
+    themselves — useful in particular for someone whose invitation-created
+    account they can't log into (forgot the password, or typed it
+    differently at login than at invitation accept).
 
-    Responde igual exista o no la cuenta — lo contrario permite enumerar
-    correos registrados probando esta ruta.
+    Same response whether or not the account exists — otherwise this route
+    could be used to enumerate registered emails.
     """
     email = data.email.lower().strip()
     await rate_limit_password_reset_request(request, email)

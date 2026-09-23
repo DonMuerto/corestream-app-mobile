@@ -1,6 +1,6 @@
 <!--
-  Página pública para elegir una nueva contraseña a partir del enlace
-  enviado por ForgotPasswordView.vue (/reset-password/:token).
+  Public page to choose a new password from the link sent by
+  ForgotPasswordView.vue (/reset-password/:token).
 -->
 <template>
   <div
@@ -20,7 +20,7 @@
           ? 'bg-[#142730] shadow-[0_20px_60px_rgba(0,0,0,0.4)]'
           : 'bg-white shadow-[0_20px_60px_rgba(6,183,178,0.15),0_4px_16px_rgba(0,0,0,0.08)]'"
       >
-        <!-- Contraseña actualizada -->
+        <!-- Password updated -->
         <div v-if="done" class="text-center space-y-4">
           <p class="text-sm" :class="isDark ? 'text-[#A1A9AC]' : 'text-[#5A686E]'">
             Contraseña actualizada. Ya puedes iniciar sesión.
@@ -33,7 +33,7 @@
           </router-link>
         </div>
 
-        <!-- Formulario -->
+        <!-- Form -->
         <form v-else @submit.prevent="onSubmit" class="space-y-5">
           <p class="text-sm" :class="isDark ? 'text-[#A1A9AC]' : 'text-[#5A686E]'">
             Elige tu nueva contraseña.

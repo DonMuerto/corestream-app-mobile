@@ -498,8 +498,8 @@ const formData = ref({
 
 const editingMemberId = ref<string | null>(null)
 
-// Orden alfabético dentro de la página actual — no es un orden global (el
-// backend pagina por fecha de creación), pero mantiene lo que ya se ve.
+// Alphabetical within the current page only — not a global order (the
+// backend paginates by creation date), but keeps the existing look.
 const sortedPagedMembers = computed(() =>
   [...teamStore.pagedMembers].sort((a, b) => a.fullName.localeCompare(b.fullName))
 )
@@ -526,10 +526,10 @@ const loadRealStats = async () => {
     
     const stats: Record<string, { completed: number; pending: number; blocked: number }> = {}
 
-    // Contamos los tickets reales por usuario. Antes se inicializaba desde
-    // teamStore.members (el roster completo) — con la tabla de miembros
-    // paginada eso ya no representa "quien esta en pantalla", y el template
-    // igual cae a 0 con `?.completed || 0` para quien no tiene entrada aca.
+    // Count real tickets per user. Used to initialize from teamStore.members
+    // (the full roster) — with the member table now paginated that no
+    // longer means "who's on screen", and the template already falls back
+    // to 0 via `?.completed || 0` for anyone without an entry here.
     allTickets.forEach((ticket: any) => {
       const uId = ticket.assignee_id
       if (!uId) return

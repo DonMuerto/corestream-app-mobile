@@ -1848,7 +1848,7 @@ const realApi = {
       return { items, hasMore }
     },
 
-    /** Total de usuarios activos por rol — independiente de qué página se esté viendo. */
+    /** Total active users by role — independent of which page is being viewed. */
     count: async (): Promise<{ total: number; byRole: Record<string, number> }> => {
       const response = await apiClient.get<{ total: number; by_role: Record<string, number> }>('/users/count')
       return { total: response.data.total, byRole: response.data.by_role }

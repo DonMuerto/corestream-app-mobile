@@ -27,9 +27,9 @@ async def test_list_users_skip_moves_the_window(client, admin_headers):
 
 async def test_count_no_depende_de_la_pagina_actual(client, admin_headers):
     """
-    El total de /count debe cubrir a todos los usuarios activos, no solo a
-    los que trae la página pedida a /users/ (con limit=1 estarían en las
-    antípodas si compartieran la misma consulta).
+    /count's total must cover every active user, not just whatever page
+    /users/ was asked for (with limit=1 those would be worlds apart if
+    they shared the same query).
     """
     pagina = await client.get("/api/users/", params={"limit": 1}, headers=admin_headers)
     conteo = await client.get("/api/users/count", headers=admin_headers)
