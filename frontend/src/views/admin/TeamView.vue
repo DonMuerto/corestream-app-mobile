@@ -154,8 +154,9 @@
                     Degradar
                   </button>
 
-                  <!-- Edit Button -->
+                  <!-- Edit Button: PUT /users/{id} is ADMIN-only in the backend -->
                   <button
+                    v-if="authStore.user?.role === 'ADMIN'"
                     @click="editMember(member)"
                     class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded text-xs font-medium transition-colors"
                     title="Editar"

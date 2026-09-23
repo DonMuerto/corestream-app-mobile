@@ -93,6 +93,31 @@ const routes: RouteRecordRaw[] = [
     }
   },
 
+  {
+    /**
+     * Reset de contraseña de autoservicio. Pública en ambos pasos: quien la
+     * pide todavía no está autenticado (a veces por eso mismo la pide), y
+     * quien la confirma llega con el token del correo, no con una sesión.
+     */
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/views/ForgotPasswordView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Recuperar contraseña - CoreStream'
+    }
+  },
+
+  {
+    path: '/reset-password/:token',
+    name: 'ResetPassword',
+    component: () => import('@/views/ResetPasswordView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Restablecer contraseña - CoreStream'
+    }
+  },
+
   /**
    * ========================================
    * RUTAS DE ADMINISTRACIÓN
@@ -216,13 +241,19 @@ const routes: RouteRecordRaw[] = [
         /**
          * Vista de gestión de equipo
          * Administración de usuarios, roles, permisos
+         *
+         * TEAM_LEADER entra para invitar developers a su equipo (el propio
+         * componente ya oculta las acciones exclusivas de ADMIN: borrar,
+         * promover/degradar líder, asignar rol TEAM_LEADER). El backend ya
+         * lo permite en GET /users/ y POST /invitations/ — este guard se
+         * había quedado en ADMIN solo, bloqueando la página entera.
          */
         path: 'team',
         name: 'TeamManagement',
         component: () => import('@/views/admin/TeamView.vue'),
         meta: {
           requiresAuth: true,
-          requiredRoles: ['ADMIN'],
+          requiredRoles: ['ADMIN', 'TEAM_LEADER'],
           title: 'Gestión de Equipo - CoreStream Admin'
         }
       },
