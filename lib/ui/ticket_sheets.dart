@@ -215,8 +215,12 @@ Future<void> _showTextActionSheet(
                 setState(() => error = s('q_short'));
                 return;
               }
-              await onSubmit(text);
-              if (ctx.mounted) Navigator.pop(ctx);
+              try {
+                await onSubmit(text);
+                if (ctx.mounted) Navigator.pop(ctx);
+              } catch (e) {
+                if (ctx.mounted) setState(() => error = e.toString());
+              }
             },
           ),
         ],
