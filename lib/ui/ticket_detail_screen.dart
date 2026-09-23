@@ -265,8 +265,9 @@ class _Actions extends ConsumerWidget {
             ),
           );
           if (confirmed != true) return;
+          final navigator = Navigator.of(context);
           await repo.deleteTicket(t.id);
-          if (context.mounted) Navigator.of(context).pop();
+          if (navigator.mounted) navigator.pop();
         },
       ));
     }
