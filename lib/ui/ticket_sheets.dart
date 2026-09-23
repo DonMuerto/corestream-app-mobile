@@ -79,6 +79,7 @@ class UserPicker extends ConsumerWidget {
 
 Future<void> showAssignSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   String? picked;
   return showCsSheet(
     context,
@@ -107,9 +108,7 @@ Future<void> showAssignSheet(BuildContext context, WidgetRef ref, Ticket ticket)
                   onPressed: picked == null
                       ? null
                       : () async {
-                          await ref
-                              .read(repositoryProvider)
-                              .assignTicket(ticket.id, picked!);
+                          await repo.assignTicket(ticket.id, picked!);
                           if (ctx.mounted) Navigator.pop(ctx);
                         },
                   child: Text(s('confirm')),
@@ -127,6 +126,7 @@ Future<void> showAssignSheet(BuildContext context, WidgetRef ref, Ticket ticket)
 
 Future<void> showCompleteSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   final controller = TextEditingController();
   String? error;
   return showCsSheet(
@@ -159,7 +159,7 @@ Future<void> showCompleteSheet(BuildContext context, WidgetRef ref, Ticket ticke
                 return;
               }
               try {
-                await ref.read(repositoryProvider).completeTicket(ticket.id, url);
+                await repo.completeTicket(ticket.id, url);
                 if (ctx.mounted) Navigator.pop(ctx);
               } catch (_) {
                 setState(() => error = s('pr_invalid'));
@@ -231,6 +231,7 @@ Future<void> _showTextActionSheet(
 
 Future<void> showQuestionSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   return _showTextActionSheet(
     context, ref,
     title: s('raise_q'),
@@ -239,12 +240,13 @@ Future<void> showQuestionSheet(BuildContext context, WidgetRef ref, Ticket ticke
     cta: s('send'),
     ctaColor: cs(context).amber,
     icon: Icons.help_outline,
-    onSubmit: (text) => ref.read(repositoryProvider).raiseQuestion(ticket.id, text),
+    onSubmit: (text) => repo.raiseQuestion(ticket.id, text),
   );
 }
 
 Future<void> showResumeSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   return _showTextActionSheet(
     context, ref,
     title: s('resume'),
@@ -254,7 +256,7 @@ Future<void> showResumeSheet(BuildContext context, WidgetRef ref, Ticket ticket)
     ctaColor: cs(context).green,
     icon: Icons.play_arrow,
     minLength: 1,
-    onSubmit: (text) => ref.read(repositoryProvider).resolveQuestion(ticket.id, text),
+    onSubmit: (text) => repo.resolveQuestion(ticket.id, text),
   );
 }
 
@@ -262,6 +264,7 @@ Future<void> showResumeSheet(BuildContext context, WidgetRef ref, Ticket ticket)
 
 Future<void> showRedirectSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   final me = ref.read(authProvider);
   final controller = TextEditingController();
   String? picked;
@@ -298,10 +301,10 @@ Future<void> showRedirectSheet(BuildContext context, WidgetRef ref, Ticket ticke
                 setState(() => error = s('q_short'));
                 return;
               }
-              await ref.read(repositoryProvider).redirectTicket(ticket.id, picked!, reason);
+              await repo.redirectTicket(ticket.id, picked!, reason);
               if (ctx.mounted) {
                 Navigator.pop(ctx); // cierra el sheet
-                Navigator.of(context).maybePop(); // vuelve del detalle
+                if (context.mounted) Navigator.of(context).maybePop(); // vuelve del detalle
               }
             },
           ),
@@ -315,6 +318,7 @@ Future<void> showRedirectSheet(BuildContext context, WidgetRef ref, Ticket ticke
 
 Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required Epic epic}) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   final controller = TextEditingController();
   final descriptionController = TextEditingController();
   var priority = TicketPriority.medium;
@@ -390,7 +394,7 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
                 error = null;
               });
               try {
-                await ref.read(repositoryProvider).createTicket(
+                await repo.createTicket(
                       epicId: epic.id,
                       title: title,
                       priority: priority,
