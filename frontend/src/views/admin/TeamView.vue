@@ -19,15 +19,15 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
       <div class="bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-sm border border-slate-200 dark:border-[var(--border-subtle)] p-6">
         <div class="text-sm text-slate-600 dark:text-slate-300 font-medium">Total Miembros</div>
-        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.memberCount }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.memberCounts.total }}</div>
       </div>
       <div class="bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-sm border border-slate-200 dark:border-[var(--border-subtle)] p-6">
         <div class="text-sm text-slate-600 dark:text-slate-300 font-medium">Desarrolladores</div>
-        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.developerCount }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.memberCounts.byRole.DEVELOPER || 0 }}</div>
       </div>
       <div class="bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-sm border border-slate-200 dark:border-[var(--border-subtle)] p-6">
         <div class="text-sm text-slate-600 dark:text-slate-300 font-medium">Líderes</div>
-        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.leaders.length }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.memberCounts.byRole.TEAM_LEADER || 0 }}</div>
       </div>
       <div class="bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-sm border border-slate-200 dark:border-[var(--border-subtle)] p-6">
         <div class="text-sm text-slate-600 dark:text-slate-300 font-medium">Tickets Sin Asignar</div>
@@ -70,7 +70,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-dark-gray-60">
-            <tr v-for="member in teamStore.sortedByName" :key="member.id" class="hover:bg-slate-50 dark:hover:bg-[var(--bg-panel)] transition-colors">
+            <tr v-for="member in sortedPagedMembers" :key="member.id" class="hover:bg-slate-50 dark:hover:bg-[var(--bg-panel)] transition-colors">
               <!-- Member Name with Avatar -->
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
@@ -191,13 +191,37 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="!isLoading && teamStore.members.length === 0" class="p-12 text-center">
+      <div v-if="!isLoading && teamStore.pagedMembers.length === 0" class="p-12 text-center">
         <p class="text-slate-600 dark:text-slate-400">No hay miembros en el equipo</p>
       </div>
 
       <!-- Loading State -->
       <div v-if="isLoading" class="p-12 text-center">
         <p class="text-slate-600 dark:text-slate-400">Cargando...</p>
+      </div>
+
+      <!-- Pagination -->
+      <div
+        v-if="!isLoading && teamStore.pagedMembers.length > 0"
+        class="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-[var(--border-subtle)]"
+      >
+        <span class="text-sm text-slate-600 dark:text-slate-400">Página {{ teamStore.membersPage }}</span>
+        <div class="flex gap-2">
+          <button
+            :disabled="teamStore.membersPage <= 1"
+            @click="goToMembersPage(teamStore.membersPage - 1)"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 dark:border-[var(--border-subtle)] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[var(--bg-panel)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Anterior
+          </button>
+          <button
+            :disabled="!teamStore.membersHasMore"
+            @click="goToMembersPage(teamStore.membersPage + 1)"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 dark:border-[var(--border-subtle)] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[var(--bg-panel)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Siguiente
+          </button>
+        </div>
       </div>
     </div>
 
@@ -474,6 +498,22 @@ const formData = ref({
 
 const editingMemberId = ref<string | null>(null)
 
+// Orden alfabético dentro de la página actual — no es un orden global (el
+// backend pagina por fecha de creación), pero mantiene lo que ya se ve.
+const sortedPagedMembers = computed(() =>
+  [...teamStore.pagedMembers].sort((a, b) => a.fullName.localeCompare(b.fullName))
+)
+
+const goToMembersPage = async (page: number) => {
+  if (page < 1) return
+  try {
+    await teamStore.fetchMembersPage(page)
+  } catch (error) {
+    console.error('Error al cambiar de página:', error)
+    dialogStore.alert('Error al cargar la página de miembros')
+  }
+}
+
 // Member statistics (completed, pending, blocked tickets)
 const memberStats = ref<Record<string, { completed: number; pending: number; blocked: number }>>({})
 
@@ -485,17 +525,16 @@ const loadRealStats = async () => {
     const allTickets = Array.isArray(response) ? response : ((response as any).items || (response as any).data || [])
     
     const stats: Record<string, { completed: number; pending: number; blocked: number }> = {}
-    
-    // Inicializamos a todos los miembros en 0
-    teamStore.members.forEach(member => {
-      stats[member.id] = { completed: 0, pending: 0, blocked: 0 }
-    })
 
-    // Contamos los tickets reales por usuario
+    // Contamos los tickets reales por usuario. Antes se inicializaba desde
+    // teamStore.members (el roster completo) — con la tabla de miembros
+    // paginada eso ya no representa "quien esta en pantalla", y el template
+    // igual cae a 0 con `?.completed || 0` para quien no tiene entrada aca.
     allTickets.forEach((ticket: any) => {
       const uId = ticket.assignee_id
-      if (!stats[uId]) return
-      
+      if (!uId) return
+      if (!stats[uId]) stats[uId] = { completed: 0, pending: 0, blocked: 0 }
+
       if (ticket.status === 'COMPLETED') {
         stats[uId].completed++
       } else if (ticket.status === 'BLOCKED_QUESTION') {
@@ -533,7 +572,8 @@ const roleLabel = (role: UserRole): string => {
 const refreshTeam = async () => {
   isLoading.value = true
   try {
-    await teamStore.fetchMembers()
+    await teamStore.fetchMembersPage(teamStore.membersPage)
+    await teamStore.fetchMemberCounts()
     await loadRealStats()
     await teamStore.fetchPendingInvitations()
   } catch (error) {
@@ -692,7 +732,8 @@ const executeDelete = async (hardDelete: boolean) => {
 onMounted(async () => {
   isLoading.value = true
   try {
-    await teamStore.fetchMembers()
+    await teamStore.fetchMembersPage(1)
+    await teamStore.fetchMemberCounts()
     await loadRealStats()
     await teamStore.fetchPendingInvitations()
   } catch (error) {

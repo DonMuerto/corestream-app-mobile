@@ -1811,11 +1811,11 @@ const realApi = {
   },
 
   team: {
-    // GET /users/ defaults to limit=20, newest first (server-side cap is
-    // 100). TeamView has no pagination UI at all, so without an explicit
-    // limit here, anyone past the 20 most recently created users silently
-    // never appeared in the member list or its stats — not a search
-    // problem, the app just never asked the backend for them.
+    // Used by assignment dropdowns (AssignmentPanel, TeamAssignmentView),
+    // which need the roster, not a page of it. GET /users/ defaults to
+    // limit=20 — ask for the server's max (100) instead. If a cohort ever
+    // grows past that, these dropdowns need real search, not just a higher
+    // number; out of scope for the TeamView pagination fix below.
     list: async (): Promise<User[]> => {
       const response = await apiClient.get<any>('/users/', { params: { limit: 100 } })
       const data = unwrapResponseData<any>(response)
@@ -1828,6 +1828,30 @@ const realApi = {
       const data = unwrapResponseData<any>(response)
       const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
       return items.map((u: any) => mapUserFromApi(u as Record<string, unknown>))
+    },
+
+    /**
+     * Real pagination for TeamView's member table: asks for one extra row
+     * to know whether a next page exists, without needing a total count
+     * from this call (that comes from `count()` below, for the stat cards).
+     */
+    listPage: async (params: { skip: number; limit: number }): Promise<{ items: User[]; hasMore: boolean }> => {
+      const response = await apiClient.get<any>('/users/', {
+        params: { skip: params.skip, limit: params.limit + 1 },
+      })
+      const data = unwrapResponseData<any>(response)
+      const raw = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+      const hasMore = raw.length > params.limit
+      const items = (hasMore ? raw.slice(0, params.limit) : raw).map((u: any) =>
+        mapUserFromApi(u as Record<string, unknown>)
+      )
+      return { items, hasMore }
+    },
+
+    /** Total de usuarios activos por rol — independiente de qué página se esté viendo. */
+    count: async (): Promise<{ total: number; byRole: Record<string, number> }> => {
+      const response = await apiClient.get<{ total: number; by_role: Record<string, number> }>('/users/count')
+      return { total: response.data.total, byRole: response.data.by_role }
     },
 
     updateMember: async (id: string, data: Partial<User>): Promise<User> => {
