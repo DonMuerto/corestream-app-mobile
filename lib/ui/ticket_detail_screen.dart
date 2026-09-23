@@ -253,6 +253,7 @@ class _Actions extends ConsumerWidget {
         label: const Text('Eliminar ticket'),
         style: OutlinedButton.styleFrom(foregroundColor: c.red),
         onPressed: () async {
+          final navigator = Navigator.of(context);
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (dialogContext) => AlertDialog(
@@ -265,7 +266,6 @@ class _Actions extends ConsumerWidget {
             ),
           );
           if (confirmed != true) return;
-          final navigator = Navigator.of(context);
           await repo.deleteTicket(t.id);
           if (navigator.mounted) navigator.pop();
         },
