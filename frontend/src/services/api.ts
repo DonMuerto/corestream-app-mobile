@@ -621,15 +621,18 @@ const realApi = {
       })
     },
 
-    requestPasswordReset: async (_payload: { email: string }): Promise<void> => {
-      throw new Error('Recuperación de contraseña no implementada')
+    requestPasswordReset: async (payload: { email: string }): Promise<void> => {
+      await apiClient.post('/auth/password-reset/request', { email: payload.email })
     },
 
-    confirmPasswordReset: async (_payload: {
+    confirmPasswordReset: async (payload: {
       token: string
       newPassword: string
     }): Promise<void> => {
-      throw new Error('Recuperación de contraseña no implementada')
+      await apiClient.post('/auth/password-reset/confirm', {
+        token: payload.token,
+        new_password: payload.newPassword
+      })
     }
   },
 

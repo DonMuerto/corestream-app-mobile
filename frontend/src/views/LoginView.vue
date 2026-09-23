@@ -150,6 +150,14 @@
           </div>
         </div>
 
+        <router-link
+          to="/forgot-password"
+          class="block text-right text-sm underline"
+          :class="isDark ? 'text-[#06B7B2]' : 'text-[#0891B2]'"
+        >
+          ¿Olvidaste tu contraseña?
+        </router-link>
+
         <!-- Mensaje de error -->
         <p v-if="errorMessage" class="text-sm text-[#DC2626] bg-[#FEE2E2] px-4 py-3 rounded-lg">
           {{ errorMessage }}

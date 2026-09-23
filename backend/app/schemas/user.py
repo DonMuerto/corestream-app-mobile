@@ -263,6 +263,22 @@ class InvitationResendResponse(BaseModel):
     email_sent: bool
 
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str = Field(..., max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("La contraseña debe tener mínimo 8 caracteres")
+        return v
+
+
 class InvitationAccept(BaseModel):
     full_name: str = Field(..., max_length=255)
     password: str = Field(..., max_length=128)

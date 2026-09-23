@@ -6,6 +6,7 @@ from .incident import AffectedEnvironment, Incident, IncidentSeverity, IncidentS
 from .invitation import Invitation
 from .meeting import AttendanceStatus, Meeting, MeetingAttendance, MeetingType
 from .notification import Notification, NotificationType
+from .password_reset_token import PasswordResetToken
 from .role import Role, UserRole
 from .subtask import Subtask
 from .team import Team
@@ -45,4 +46,5 @@ __all__ = [
     "MeetingType",
     "MeetingAttendance",
     "AttendanceStatus",
+    "PasswordResetToken",
 ]

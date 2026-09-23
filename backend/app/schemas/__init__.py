@@ -80,6 +80,8 @@ from app.schemas.user import (
     InvitationResendResponse,
     InvitationResponse,
     LogoutRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     RefreshRequest,
     TokenPayload,
     TokenResponse,
@@ -108,6 +110,8 @@ __all__ = [
     "InvitationListItem",
     "InvitationResendResponse",
     "InvitationAccept",
+    "PasswordResetRequest",
+    "PasswordResetConfirm",
     # Esquemas de Aplicación
     "ApplicationCreate",
     "ApplicationUpdate",

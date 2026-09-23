@@ -14,8 +14,9 @@ interno bajo un dominio público no debe dejar que cualquiera se cree una
 cuenta.
 """
 
+import hashlib
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -26,11 +27,13 @@ from sqlalchemy.orm import selectinload
 from app.config import get_settings
 from app.database import get_db
 from app.middleware.auth import get_access_token_payload, get_current_user
-from app.middleware.rate_limit import rate_limit_login
-from app.models import Role, User
+from app.middleware.rate_limit import rate_limit_login, rate_limit_password_reset_request
+from app.models import PasswordResetToken, Role, User
 from app.redis_client import create_ws_ticket, revoke_jti
 from app.schemas import (
     LogoutRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     RefreshRequest,
     TokenPayload,
     TokenResponse,
@@ -40,6 +43,7 @@ from app.schemas import (
 )
 from app.schemas.user import PasswordChange
 from app.services.auth_service import AuthService
+from app.services.email_service import send_password_reset_email
 
 router = APIRouter(tags=["Autenticación"])
 
@@ -400,3 +404,91 @@ async def change_password(
         new_password=payload.new_password,
     )
     return {"message": "Contraseña actualizada exitosamente"}
+
+
+RESET_TOKEN_TTL_MINUTES = 60
+
+
+def _hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+@router.post(
+    "/password-reset/request",
+    status_code=status.HTTP_200_OK,
+    summary="Solicitar reset de contraseña",
+    description="Sin autenticar: manda un enlace de un solo uso al correo si la cuenta existe",
+)
+async def request_password_reset(
+    data: PasswordResetRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Antes la única forma de recuperar una cuenta bloqueada era que un ADMIN
+    usara POST /users/{id}/reset-password. Este endpoint le da autoservicio
+    al propio usuario — útil en particular para quien quedó con la cuenta
+    creada por invitación pero sin poder entrar (contraseña olvidada/typeada
+    distinto al aceptar la invitación vs. al hacer login).
+
+    Responde igual exista o no la cuenta — lo contrario permite enumerar
+    correos registrados probando esta ruta.
+    """
+    email = data.email.lower().strip()
+    await rate_limit_password_reset_request(request, email)
+
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if user and user.is_active:
+        raw_token = secrets.token_urlsafe(32)
+        db.add(
+            PasswordResetToken(
+                user_id=user.id,
+                token_hash=_hash_reset_token(raw_token),
+                expires_at=datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES),
+            )
+        )
+        await db.commit()
+
+        settings = get_settings()
+        frontend_origin = settings.ALLOWED_ORIGINS[0] if settings.ALLOWED_ORIGINS else ""
+        reset_url = f"{frontend_origin}/#/reset-password/{raw_token}"
+        await send_password_reset_email(to_email=user.email, reset_url=reset_url)
+
+    return {"message": "Si el correo existe, se envió un enlace para restablecer la contraseña"}
+
+
+@router.post(
+    "/password-reset/confirm",
+    status_code=status.HTTP_200_OK,
+    summary="Confirmar reset de contraseña",
+    description="Sin autenticar: consume el token del correo y fija la nueva contraseña",
+)
+async def confirm_password_reset(
+    data: PasswordResetConfirm,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    result = await db.execute(
+        select(PasswordResetToken).where(PasswordResetToken.token_hash == _hash_reset_token(data.token))
+    )
+    reset_token = result.scalar_one_or_none()
+
+    if reset_token is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enlace inválido")
+    if reset_token.is_used:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Este enlace ya fue usado")
+    if reset_token.is_expired:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Este enlace ha caducado")
+
+    user_result = await db.execute(select(User).where(User.id == reset_token.user_id))
+    user = user_result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cuenta no encontrada")
+
+    user.hashed_password = AuthService.hash_password(data.new_password)
+    user.must_change_password = False
+    reset_token.used_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    return {"message": "Contraseña actualizada. Ya puedes iniciar sesión"}
