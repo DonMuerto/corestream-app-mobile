@@ -613,13 +613,15 @@ class DemoRepository implements CoreStreamRepository {
     required String title,
     required TicketPriority priority,
     String? assigneeId,
+    String? description,
+    DateTime? dueDate,
   }) async {
     final me = _current!;
     final t = Ticket(
       id: _nid(), number: ++_ticketNum, epicId: epicId,
-      title: title, description: title,
+      title: title, description: description?.trim().isNotEmpty == true ? description!.trim() : title,
       priority: priority, assigneeId: assigneeId, createdById: me.id,
-      dueDate: DateTime.now().add(const Duration(days: 7)),
+      dueDate: dueDate ?? DateTime.now().add(const Duration(days: 7)),
       events: [TicketEvent(type: 'CREATED', userId: me.id, ts: DateTime.now())],
     );
     if (assigneeId != null) {
@@ -634,6 +636,13 @@ class DemoRepository implements CoreStreamRepository {
     _notify(_leadIds.where((id) => id != me.id).toList(), NotificationKind.system,
         '${me.fullName} creó un ticket en ${projectOfTicket(t)!.name}: “${t.title}”',
         ticketId: t.id);
+    _emitChange();
+  }
+
+  @override
+  Future<void> deleteTicket(String ticketId) async {
+    if (_current?.role != UserRole.admin) throw StateError('Sólo el administrador puede eliminar tickets.');
+    _tickets.removeWhere((t) => t.id == ticketId);
     _emitChange();
   }
 

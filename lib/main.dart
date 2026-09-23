@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/config.dart';
 import 'core/theme.dart';
 import 'providers.dart';
 import 'ui/home_shell.dart';
@@ -9,6 +11,12 @@ import 'ui/login_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (AppConfig.isSupabase) {
+    await Supabase.initialize(
+      url: AppConfig.supabaseUrl,
+      publishableKey: AppConfig.supabaseAnonKey,
+    );
+  }
   final prefs = await SharedPreferences.getInstance();
   runApp(ProviderScope(
     overrides: [prefsProvider.overrideWithValue(prefs)],

@@ -247,6 +247,29 @@ class _Actions extends ConsumerWidget {
         onPressed: () => showResumeSheet(context, ref, t),
       ));
     }
+    if (p.canDelete) {
+      children.add(OutlinedButton.icon(
+        icon: const Icon(Icons.delete_outline),
+        label: const Text('Eliminar ticket'),
+        style: OutlinedButton.styleFrom(foregroundColor: c.red),
+        onPressed: () async {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Eliminar ticket'),
+              content: const Text('Se quitará del tablero y quedará archivado en la base de datos para trazabilidad.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+                FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Eliminar')),
+              ],
+            ),
+          );
+          if (confirmed != true) return;
+          await repo.deleteTicket(t.id);
+          if (context.mounted) Navigator.of(context).pop();
+        },
+      ));
+    }
 
     if (children.isEmpty && t.status != TicketStatus.done) {
       return EmptyState(s('view_only'), icon: Icons.visibility_outlined);

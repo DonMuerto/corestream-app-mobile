@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo Dependencies are installed by the Flutter build command",
-  "buildCommand": "git clone --depth 1 --branch 3.47.2 https://github.com/flutter/flutter.git .vercel_flutter && ./.vercel_flutter/bin/flutter config --enable-web --no-analytics && ./.vercel_flutter/bin/flutter pub get && ./.vercel_flutter/bin/flutter build web --release",
+  "buildCommand": "bash scripts/build-vercel.sh",
   "outputDirectory": "build/web",
   "rewrites": [
     {

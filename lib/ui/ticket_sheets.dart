@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/config.dart';
 import '../core/theme.dart';
 import '../models/models.dart';
 import '../providers.dart';
@@ -78,6 +79,7 @@ class UserPicker extends ConsumerWidget {
 
 Future<void> showAssignSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   String? picked;
   return showCsSheet(
     context,
@@ -106,9 +108,7 @@ Future<void> showAssignSheet(BuildContext context, WidgetRef ref, Ticket ticket)
                   onPressed: picked == null
                       ? null
                       : () async {
-                          await ref
-                              .read(repositoryProvider)
-                              .assignTicket(ticket.id, picked!);
+                          await repo.assignTicket(ticket.id, picked!);
                           if (ctx.mounted) Navigator.pop(ctx);
                         },
                   child: Text(s('confirm')),
@@ -126,6 +126,7 @@ Future<void> showAssignSheet(BuildContext context, WidgetRef ref, Ticket ticket)
 
 Future<void> showCompleteSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   final controller = TextEditingController();
   String? error;
   return showCsSheet(
@@ -158,7 +159,7 @@ Future<void> showCompleteSheet(BuildContext context, WidgetRef ref, Ticket ticke
                 return;
               }
               try {
-                await ref.read(repositoryProvider).completeTicket(ticket.id, url);
+                await repo.completeTicket(ticket.id, url);
                 if (ctx.mounted) Navigator.pop(ctx);
               } catch (_) {
                 setState(() => error = s('pr_invalid'));
@@ -214,8 +215,12 @@ Future<void> _showTextActionSheet(
                 setState(() => error = s('q_short'));
                 return;
               }
-              await onSubmit(text);
-              if (ctx.mounted) Navigator.pop(ctx);
+              try {
+                await onSubmit(text);
+                if (ctx.mounted) Navigator.pop(ctx);
+              } catch (e) {
+                if (ctx.mounted) setState(() => error = e.toString());
+              }
             },
           ),
         ],
@@ -226,6 +231,7 @@ Future<void> _showTextActionSheet(
 
 Future<void> showQuestionSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   return _showTextActionSheet(
     context, ref,
     title: s('raise_q'),
@@ -234,12 +240,13 @@ Future<void> showQuestionSheet(BuildContext context, WidgetRef ref, Ticket ticke
     cta: s('send'),
     ctaColor: cs(context).amber,
     icon: Icons.help_outline,
-    onSubmit: (text) => ref.read(repositoryProvider).raiseQuestion(ticket.id, text),
+    onSubmit: (text) => repo.raiseQuestion(ticket.id, text),
   );
 }
 
 Future<void> showResumeSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   return _showTextActionSheet(
     context, ref,
     title: s('resume'),
@@ -249,7 +256,7 @@ Future<void> showResumeSheet(BuildContext context, WidgetRef ref, Ticket ticket)
     ctaColor: cs(context).green,
     icon: Icons.play_arrow,
     minLength: 1,
-    onSubmit: (text) => ref.read(repositoryProvider).resolveQuestion(ticket.id, text),
+    onSubmit: (text) => repo.resolveQuestion(ticket.id, text),
   );
 }
 
@@ -257,6 +264,7 @@ Future<void> showResumeSheet(BuildContext context, WidgetRef ref, Ticket ticket)
 
 Future<void> showRedirectSheet(BuildContext context, WidgetRef ref, Ticket ticket) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   final me = ref.read(authProvider);
   final controller = TextEditingController();
   String? picked;
@@ -293,10 +301,10 @@ Future<void> showRedirectSheet(BuildContext context, WidgetRef ref, Ticket ticke
                 setState(() => error = s('q_short'));
                 return;
               }
-              await ref.read(repositoryProvider).redirectTicket(ticket.id, picked!, reason);
+              await repo.redirectTicket(ticket.id, picked!, reason);
               if (ctx.mounted) {
                 Navigator.pop(ctx); // cierra el sheet
-                Navigator.of(context).maybePop(); // vuelve del detalle
+                if (context.mounted) Navigator.of(context).maybePop(); // vuelve del detalle
               }
             },
           ),
@@ -310,10 +318,14 @@ Future<void> showRedirectSheet(BuildContext context, WidgetRef ref, Ticket ticke
 
 Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required Epic epic}) {
   final s = ref.read(stringsProvider);
+  final repo = ref.read(repositoryProvider);
   final controller = TextEditingController();
+  final descriptionController = TextEditingController();
   var priority = TicketPriority.medium;
+  DateTime? dueDate;
   String? picked;
   String? error;
+  var saving = false;
   return showCsSheet(
     context,
     StatefulBuilder(
@@ -321,12 +333,19 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SheetTitle(s('new_ticket'), subtitle: '${epic.name} — ${s('nt_sub')}'),
+          SheetTitle(s('new_ticket'),
+              subtitle: '${epic.name} — ${AppConfig.isSupabase ? 'Se guardará en la base de datos.' : s('nt_sub')}'),
           TextField(
             controller: controller,
             autofocus: true,
             maxLength: 120,
             decoration: InputDecoration(labelText: s('nt_title'), errorText: error),
+          ),
+          TextField(
+            controller: descriptionController,
+            maxLines: 3,
+            maxLength: 1000,
+            decoration: const InputDecoration(labelText: 'Descripción (opcional)'),
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<TicketPriority>(
@@ -338,6 +357,22 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
             ],
             onChanged: (v) => setState(() => priority = v ?? TicketPriority.medium),
           ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.event_outlined),
+            label: Text(dueDate == null
+                ? 'Fecha límite (opcional)'
+                : 'Fecha límite: ${dueDate!.day}/${dueDate!.month}/${dueDate!.year}'),
+            onPressed: () async {
+              final selected = await showDatePicker(
+                context: ctx,
+                initialDate: dueDate ?? DateTime.now().add(const Duration(days: 7)),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 3650)),
+              );
+              if (selected != null) setState(() => dueDate = selected);
+            },
+          ),
           const SizedBox(height: 12),
           Text('${s('assignee')} (${s('optional')})',
               style: TextStyle(
@@ -347,20 +382,35 @@ Future<void> showNewTicketSheet(BuildContext context, WidgetRef ref, {required E
           const SizedBox(height: 12),
           FilledButton.icon(
             icon: const Icon(Icons.add),
-            label: Text(s('save')),
-            onPressed: () async {
+            label: Text(saving ? 'Guardando…' : s('save')),
+            onPressed: saving ? null : () async {
               final title = controller.text.trim();
               if (title.length < 5) {
                 setState(() => error = s('nt_short'));
                 return;
               }
-              await ref.read(repositoryProvider).createTicket(
-                    epicId: epic.id,
-                    title: title,
-                    priority: priority,
-                    assigneeId: picked,
-                  );
-              if (ctx.mounted) Navigator.pop(ctx);
+              setState(() {
+                saving = true;
+                error = null;
+              });
+              try {
+                await repo.createTicket(
+                      epicId: epic.id,
+                      title: title,
+                      priority: priority,
+                      assigneeId: picked,
+                      description: descriptionController.text,
+                      dueDate: dueDate,
+                    );
+                if (ctx.mounted) Navigator.pop(ctx);
+              } catch (_) {
+                if (ctx.mounted) {
+                  setState(() {
+                    saving = false;
+                    error = 'No fue posible guardar el ticket. Revisa la conexión.';
+                  });
+                }
+              }
             },
           ),
         ],
