@@ -30,11 +30,12 @@
           {{ t('nav.builder') }}
         </router-link>
 
-        <!-- Analytics/Incidents/Meetings: TEAM_LEADER gestiona el día a día
-             del equipo (backend ya lo permite en analytics.py, incidents.py
-             y meetings.py), así que también las ve. code-docs/team/support
-             quedan exclusivas de ADMIN — son administración de la
-             plataforma en sí (usuarios/roles, config del sistema). -->
+        <!-- Analytics/Incidents/Meetings/Team: TEAM_LEADER manages the
+             team's day-to-day, including inviting developers (the backend
+             already allows it in analytics.py, incidents.py, meetings.py,
+             users.py and invitations.py), so they see these too.
+             code-docs/support stay ADMIN-only — platform administration
+             itself (system config, internal support). -->
         <template v-if="isAdminOrLeader">
           <router-link
             to="/admin/analytics"
@@ -58,6 +59,14 @@
             active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
           >
             Reuniones
+          </router-link>
+
+          <router-link
+            to="/admin/team"
+            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
+            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
+          >
+            {{ t('nav.team') }}
           </router-link>
 
           <router-link
@@ -114,14 +123,6 @@
             active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
           >
             {{ t('nav.documentation') }}
-          </router-link>
-
-          <router-link
-            to="/admin/team"
-            class="block px-4 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-panel)]"
-            active-class="bg-[var(--bg-panel)] text-[var(--teal)] font-bold shadow-sm"
-          >
-            {{ t('nav.team') }}
           </router-link>
 
           <router-link

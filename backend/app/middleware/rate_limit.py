@@ -65,3 +65,13 @@ async def rate_limit_login(request: Request, email: str | None = None) -> None:
     await _hit(f"login:ip:{ip}", max_attempts=20, window_seconds=300)
     if email:
         await _hit(f"login:email:{email.lower().strip()}", max_attempts=8, window_seconds=300)
+
+
+async def rate_limit_password_reset_request(request: Request, email: str) -> None:
+    """
+    Same criteria as rate_limit_login: by IP (sweeping many accounts) and
+    by account (don't flood one person's inbox at someone else's request).
+    """
+    ip = _client_ip(request)
+    await _hit(f"pwreset:ip:{ip}", max_attempts=10, window_seconds=300)
+    await _hit(f"pwreset:email:{email.lower().strip()}", max_attempts=3, window_seconds=300)

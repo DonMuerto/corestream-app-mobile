@@ -19,15 +19,15 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
       <div class="bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-sm border border-slate-200 dark:border-[var(--border-subtle)] p-6">
         <div class="text-sm text-slate-600 dark:text-slate-300 font-medium">Total Miembros</div>
-        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.memberCount }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.memberCounts.total }}</div>
       </div>
       <div class="bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-sm border border-slate-200 dark:border-[var(--border-subtle)] p-6">
         <div class="text-sm text-slate-600 dark:text-slate-300 font-medium">Desarrolladores</div>
-        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.developerCount }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.memberCounts.byRole.DEVELOPER || 0 }}</div>
       </div>
       <div class="bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-sm border border-slate-200 dark:border-[var(--border-subtle)] p-6">
         <div class="text-sm text-slate-600 dark:text-slate-300 font-medium">Líderes</div>
-        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.leaders.length }}</div>
+        <div class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ teamStore.memberCounts.byRole.TEAM_LEADER || 0 }}</div>
       </div>
       <div class="bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-sm border border-slate-200 dark:border-[var(--border-subtle)] p-6">
         <div class="text-sm text-slate-600 dark:text-slate-300 font-medium">Tickets Sin Asignar</div>
@@ -70,7 +70,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-dark-gray-60">
-            <tr v-for="member in teamStore.sortedByName" :key="member.id" class="hover:bg-slate-50 dark:hover:bg-[var(--bg-panel)] transition-colors">
+            <tr v-for="member in sortedPagedMembers" :key="member.id" class="hover:bg-slate-50 dark:hover:bg-[var(--bg-panel)] transition-colors">
               <!-- Member Name with Avatar -->
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
@@ -154,8 +154,9 @@
                     Degradar
                   </button>
 
-                  <!-- Edit Button -->
+                  <!-- Edit Button: PUT /users/{id} is ADMIN-only in the backend -->
                   <button
+                    v-if="authStore.user?.role === 'ADMIN'"
                     @click="editMember(member)"
                     class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded text-xs font-medium transition-colors"
                     title="Editar"
@@ -190,13 +191,37 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="!isLoading && teamStore.members.length === 0" class="p-12 text-center">
+      <div v-if="!isLoading && teamStore.pagedMembers.length === 0" class="p-12 text-center">
         <p class="text-slate-600 dark:text-slate-400">No hay miembros en el equipo</p>
       </div>
 
       <!-- Loading State -->
       <div v-if="isLoading" class="p-12 text-center">
         <p class="text-slate-600 dark:text-slate-400">Cargando...</p>
+      </div>
+
+      <!-- Pagination -->
+      <div
+        v-if="!isLoading && teamStore.pagedMembers.length > 0"
+        class="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-[var(--border-subtle)]"
+      >
+        <span class="text-sm text-slate-600 dark:text-slate-400">Página {{ teamStore.membersPage }}</span>
+        <div class="flex gap-2">
+          <button
+            :disabled="teamStore.membersPage <= 1"
+            @click="goToMembersPage(teamStore.membersPage - 1)"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 dark:border-[var(--border-subtle)] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[var(--bg-panel)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Anterior
+          </button>
+          <button
+            :disabled="!teamStore.membersHasMore"
+            @click="goToMembersPage(teamStore.membersPage + 1)"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 dark:border-[var(--border-subtle)] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[var(--bg-panel)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Siguiente
+          </button>
+        </div>
       </div>
     </div>
 
@@ -278,6 +303,9 @@
               <p class="text-sm text-slate-600 dark:text-slate-300">
                 Copia este enlace y entrégaselo a la persona invitada (por Slack, correo, etc.).
                 Solo se muestra una vez.
+              </p>
+              <p v-if="!inviteEmailSent" class="text-sm text-amber-600 dark:text-amber-400">
+                No se pudo enviar el correo automático — comparte el enlace manualmente.
               </p>
               <div class="flex gap-2">
                 <input
@@ -459,6 +487,7 @@ const isLoading = ref(false)
 const showAddMemberModal = ref(false)
 const showEditModal = ref(false)
 const inviteLink = ref<string | null>(null)
+const inviteEmailSent = ref(true)
 
 const formData = ref({
   fullName: '',
@@ -468,6 +497,22 @@ const formData = ref({
 })
 
 const editingMemberId = ref<string | null>(null)
+
+// Alphabetical within the current page only — not a global order (the
+// backend paginates by creation date), but keeps the existing look.
+const sortedPagedMembers = computed(() =>
+  [...teamStore.pagedMembers].sort((a, b) => a.fullName.localeCompare(b.fullName))
+)
+
+const goToMembersPage = async (page: number) => {
+  if (page < 1) return
+  try {
+    await teamStore.fetchMembersPage(page)
+  } catch (error) {
+    console.error('Error al cambiar de página:', error)
+    dialogStore.alert('Error al cargar la página de miembros')
+  }
+}
 
 // Member statistics (completed, pending, blocked tickets)
 const memberStats = ref<Record<string, { completed: number; pending: number; blocked: number }>>({})
@@ -480,17 +525,16 @@ const loadRealStats = async () => {
     const allTickets = Array.isArray(response) ? response : ((response as any).items || (response as any).data || [])
     
     const stats: Record<string, { completed: number; pending: number; blocked: number }> = {}
-    
-    // Inicializamos a todos los miembros en 0
-    teamStore.members.forEach(member => {
-      stats[member.id] = { completed: 0, pending: 0, blocked: 0 }
-    })
 
-    // Contamos los tickets reales por usuario
+    // Count real tickets per user. Used to initialize from teamStore.members
+    // (the full roster) — with the member table now paginated that no
+    // longer means "who's on screen", and the template already falls back
+    // to 0 via `?.completed || 0` for anyone without an entry here.
     allTickets.forEach((ticket: any) => {
       const uId = ticket.assignee_id
-      if (!stats[uId]) return
-      
+      if (!uId) return
+      if (!stats[uId]) stats[uId] = { completed: 0, pending: 0, blocked: 0 }
+
       if (ticket.status === 'COMPLETED') {
         stats[uId].completed++
       } else if (ticket.status === 'BLOCKED_QUESTION') {
@@ -528,7 +572,8 @@ const roleLabel = (role: UserRole): string => {
 const refreshTeam = async () => {
   isLoading.value = true
   try {
-    await teamStore.fetchMembers()
+    await teamStore.fetchMembersPage(teamStore.membersPage)
+    await teamStore.fetchMemberCounts()
     await loadRealStats()
     await teamStore.fetchPendingInvitations()
   } catch (error) {
@@ -592,10 +637,12 @@ const saveMember = async () => {
     } else {
       // Invita al nuevo miembro: no crea la cuenta todavía, solo genera el
       // enlace. Se muestra en el propio modal en vez de cerrarlo.
-      inviteLink.value = await teamStore.inviteMember({
+      const result = await teamStore.inviteMember({
         email: formData.value.email,
         role: formData.value.role as UserRole,
       })
+      inviteLink.value = result.link
+      inviteEmailSent.value = result.emailSent
     }
   } catch (error) {
     console.error('Error al guardar miembro:', error)
@@ -609,6 +656,7 @@ const closeMemberModal = () => {
   showAddMemberModal.value = false
   showEditModal.value = false
   inviteLink.value = null
+  inviteEmailSent.value = true
   formData.value = { fullName: '', email: '', specialty: '', role: UserRole.DEVELOPER }
   editingMemberId.value = null
 }
@@ -684,7 +732,8 @@ const executeDelete = async (hardDelete: boolean) => {
 onMounted(async () => {
   isLoading.value = true
   try {
-    await teamStore.fetchMembers()
+    await teamStore.fetchMembersPage(1)
+    await teamStore.fetchMemberCounts()
     await loadRealStats()
     await teamStore.fetchPendingInvitations()
   } catch (error) {

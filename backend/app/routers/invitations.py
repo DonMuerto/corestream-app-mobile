@@ -106,7 +106,7 @@ async def create_invitation(
     settings = get_settings()
     frontend_origin = settings.ALLOWED_ORIGINS[0] if settings.ALLOWED_ORIGINS else ""
     invite_url = f"{frontend_origin}/#/invite/{raw_token}"
-    await send_invitation_email(to_email=email, role=data.role, invite_url=invite_url)
+    email_sent = await send_invitation_email(to_email=email, role=data.role, invite_url=invite_url)
 
     return InvitationResponse(
         id=invitation.id,
@@ -114,6 +114,7 @@ async def create_invitation(
         role=invitation.role,
         token=raw_token,
         expires_at=invitation.expires_at,
+        email_sent=email_sent,
     )
 
 

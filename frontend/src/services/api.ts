@@ -327,7 +327,13 @@ const createApiClient = (): AxiosInstance => {
     async (error: AxiosError) => {
       const originalRequest = error.config as any
 
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      // A 401 from /auth/login means wrong credentials, not an expired
+      // session — retrying via /auth/refresh has no cookie to work with yet
+      // and its own 401 ("No se proporcionó refresh_token") was overwriting
+      // the real "Email o contraseña incorrectos" error from login.
+      const isLoginRequest = typeof originalRequest?.url === 'string' && originalRequest.url.includes('/auth/login')
+
+      if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
         originalRequest._retry = true
 
         try {
@@ -615,15 +621,18 @@ const realApi = {
       })
     },
 
-    requestPasswordReset: async (_payload: { email: string }): Promise<void> => {
-      throw new Error('Recuperación de contraseña no implementada')
+    requestPasswordReset: async (payload: { email: string }): Promise<void> => {
+      await apiClient.post('/auth/password-reset/request', { email: payload.email })
     },
 
-    confirmPasswordReset: async (_payload: {
+    confirmPasswordReset: async (payload: {
       token: string
       newPassword: string
     }): Promise<void> => {
-      throw new Error('Recuperación de contraseña no implementada')
+      await apiClient.post('/auth/password-reset/confirm', {
+        token: payload.token,
+        new_password: payload.newPassword
+      })
     }
   },
 
@@ -642,6 +651,7 @@ const realApi = {
       role: string
       token: string
       expiresAt: string
+      emailSent: boolean
     }> => {
       const response = await apiClient.post<Record<string, unknown>>('/invitations/', {
         email: data.email,
@@ -654,6 +664,7 @@ const realApi = {
         role: String(d.role ?? ''),
         token: String(d.token ?? ''),
         expiresAt: String(d.expires_at ?? ''),
+        emailSent: Boolean(d.email_sent),
       }
     },
 
@@ -1800,18 +1811,47 @@ const realApi = {
   },
 
   team: {
+    // Used by assignment dropdowns (AssignmentPanel, TeamAssignmentView),
+    // which need the roster, not a page of it. GET /users/ defaults to
+    // limit=20 — ask for the server's max (100) instead. If a cohort ever
+    // grows past that, these dropdowns need real search, not just a higher
+    // number; out of scope for the TeamView pagination fix below.
     list: async (): Promise<User[]> => {
-      const response = await apiClient.get<any>('/users/')
+      const response = await apiClient.get<any>('/users/', { params: { limit: 100 } })
       const data = unwrapResponseData<any>(response)
       const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
       return items.map((u: any) => mapUserFromApi(u as Record<string, unknown>))
     },
 
     listByApplication: async (appId: string): Promise<User[]> => {
-      const response = await apiClient.get<any>('/users/', { params: { application_id: appId } })
+      const response = await apiClient.get<any>('/users/', { params: { application_id: appId, limit: 100 } })
       const data = unwrapResponseData<any>(response)
       const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
       return items.map((u: any) => mapUserFromApi(u as Record<string, unknown>))
+    },
+
+    /**
+     * Real pagination for TeamView's member table: asks for one extra row
+     * to know whether a next page exists, without needing a total count
+     * from this call (that comes from `count()` below, for the stat cards).
+     */
+    listPage: async (params: { skip: number; limit: number }): Promise<{ items: User[]; hasMore: boolean }> => {
+      const response = await apiClient.get<any>('/users/', {
+        params: { skip: params.skip, limit: params.limit + 1 },
+      })
+      const data = unwrapResponseData<any>(response)
+      const raw = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+      const hasMore = raw.length > params.limit
+      const items = (hasMore ? raw.slice(0, params.limit) : raw).map((u: any) =>
+        mapUserFromApi(u as Record<string, unknown>)
+      )
+      return { items, hasMore }
+    },
+
+    /** Total active users by role — independent of which page is being viewed. */
+    count: async (): Promise<{ total: number; byRole: Record<string, number> }> => {
+      const response = await apiClient.get<{ total: number; by_role: Record<string, number> }>('/users/count')
+      return { total: response.data.total, byRole: response.data.by_role }
     },
 
     updateMember: async (id: string, data: Partial<User>): Promise<User> => {

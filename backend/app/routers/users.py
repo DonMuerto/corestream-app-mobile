@@ -156,6 +156,33 @@ async def list_users(
 
 
 @router.get(
+    "/count",
+    summary="Contar usuarios por rol",
+    description="Total de usuarios activos y desglose por rol, para las tarjetas de stats de TeamView",
+)
+async def count_users(
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEAM_LEADER])),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Declared before /{user_id} on purpose: if it came after, FastAPI would
+    match /count against that path param first and this would never fire.
+
+    list_users() paginates (limit=20 by default, capped at 100) and
+    TeamView doesn't reconstruct these totals by summing pages — it needs a
+    separate count that doesn't depend on how many rows the current page got.
+    """
+    result = await db.execute(
+        select(Role.name, func.count(User.id))
+        .join(User, User.role_id == Role.id)
+        .where(User.is_active)
+        .group_by(Role.name)
+    )
+    by_role = {name: count for name, count in result.all()}
+    return {"total": sum(by_role.values()), "by_role": by_role}
+
+
+@router.get(
     "/{user_id}",
     response_model=UserResponse,
     summary="Obtener usuario por ID",

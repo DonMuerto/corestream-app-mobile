@@ -66,6 +66,22 @@ export const useTeamStore = defineStore('team', () => {
    */
   const pendingInvitations = ref<PendingInvitation[]>([])
 
+  /**
+   * Current page of TeamView's member table (real pagination, separate
+   * from `members`/`fetchMembers` — those still fetch the full roster for
+   * assignment dropdowns, which shouldn't be paginated).
+   */
+  const pagedMembers = ref<User[]>([])
+  const membersPage = ref(1)
+  const membersPageSize = 20
+  const membersHasMore = ref(false)
+
+  /** Totals by role, independent of the current page (for the stat cards). */
+  const memberCounts = ref<{ total: number; byRole: Record<string, number> }>({
+    total: 0,
+    byRole: {},
+  })
+
   // ========== GETTERS COMPUTADOS ==========
 
   /**
@@ -162,6 +178,19 @@ export const useTeamStore = defineStore('team', () => {
   // ========== ACCIONES ==========
 
   /**
+   * Reflects an updated member in both `members` and `pagedMembers` — two
+   * independent fetches (full roster vs. TeamView's current page), and a
+   * remote mutation must show up in whichever array holds that member.
+   */
+  const _syncMemberInPlace = (updated: User): void => {
+    const i = members.value.findIndex(m => m.id === updated.id)
+    if (i !== -1) members.value[i] = updated
+
+    const j = pagedMembers.value.findIndex(m => m.id === updated.id)
+    if (j !== -1) pagedMembers.value[j] = updated
+  }
+
+  /**
    * Obtiene la lista de miembros del equipo
    * Puede filtrar por aplicación específica
    * 
@@ -194,6 +223,40 @@ export const useTeamStore = defineStore('team', () => {
   }
 
   /**
+   * Fetches one page of TeamView's member table. Asks the backend for one
+   * extra row to know whether there's a next page without needing a total
+   * — that total comes separately from fetchMemberCounts, for the stat cards.
+   */
+  const fetchMembersPage = async (page: number = 1): Promise<void> => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const { items, hasMore } = await api.team.listPage({
+        skip: (page - 1) * membersPageSize,
+        limit: membersPageSize,
+      })
+      pagedMembers.value = items
+      membersHasMore.value = hasMore
+      membersPage.value = page
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al obtener miembros del equipo'
+      error.value = message
+      console.error('Error en fetchMembersPage:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const fetchMemberCounts = async (): Promise<void> => {
+    try {
+      memberCounts.value = await api.team.count()
+    } catch (err) {
+      console.error('Error en fetchMemberCounts:', err)
+    }
+  }
+
+  /**
    * Invita a un nuevo miembro al equipo (plan 3.7).
    *
    * Ya no crea la cuenta directamente — antes lo hacía llamando a
@@ -205,7 +268,7 @@ export const useTeamStore = defineStore('team', () => {
    *
    * @returns el enlace completo para copiar y entregar al invitado
    */
-  const inviteMember = async (data: { email: string; role: UserRole }): Promise<string> => {
+  const inviteMember = async (data: { email: string; role: UserRole }): Promise<{ link: string; emailSent: boolean }> => {
     isLoading.value = true
     error.value = null
 
@@ -216,7 +279,10 @@ export const useTeamStore = defineStore('team', () => {
       // servidor; nginx cae al fallback de index.html (sirve la SPA igual),
       // pero vue-router lee location.hash para decidir la ruta, lo ve vacío,
       // y el guard beforeEach termina mandando a /login por no haber sesión.
-      return `${window.location.origin}/#/invite/${invitation.token}`
+      return {
+        link: `${window.location.origin}/#/invite/${invitation.token}`,
+        emailSent: invitation.emailSent,
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al invitar miembro'
       error.value = message
@@ -285,12 +351,7 @@ export const useTeamStore = defineStore('team', () => {
 
     try {
       const updated = await api.team.updateMember(id, data)
-      
-      const index = members.value.findIndex(m => m.id === id)
-      if (index !== -1) {
-        members.value[index] = updated
-      }
-
+      _syncMemberInPlace(updated)
       return updated
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al actualizar miembro'
@@ -316,8 +377,10 @@ export const useTeamStore = defineStore('team', () => {
     try {
       // Le pasamos el hardDelete a la API
       await api.team.deleteMember(id, hardDelete)
-      
+
       members.value = members.value.filter(m => m.id !== id)
+      pagedMembers.value = pagedMembers.value.filter(m => m.id !== id)
+      await fetchMemberCounts()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al eliminar miembro'
       error.value = message
@@ -341,12 +404,8 @@ export const useTeamStore = defineStore('team', () => {
 
     try {
       const updated = await api.team.promoteToLeader(userId)
-      
-      const index = members.value.findIndex(m => m.id === userId)
-      if (index !== -1) {
-        members.value[index] = updated
-      }
-
+      _syncMemberInPlace(updated)
+      await fetchMemberCounts()
       return updated
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al promover a líder'
@@ -371,12 +430,8 @@ export const useTeamStore = defineStore('team', () => {
 
     try {
       const updated = await api.team.demoteLeader(userId)
-      
-      const index = members.value.findIndex(m => m.id === userId)
-      if (index !== -1) {
-        members.value[index] = updated
-      }
-
+      _syncMemberInPlace(updated)
+      await fetchMemberCounts()
       return updated
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al degradar líder'
@@ -544,6 +599,11 @@ export const useTeamStore = defineStore('team', () => {
     showAddModal,
     currentAppId,
     pendingInvitations,
+    pagedMembers,
+    membersPage,
+    membersPageSize,
+    membersHasMore,
+    memberCounts,
     // Getters
     leaders,
     developers,
@@ -556,6 +616,8 @@ export const useTeamStore = defineStore('team', () => {
     unassignedSortedByPriority,
     // Acciones
     fetchMembers,
+    fetchMembersPage,
+    fetchMemberCounts,
     inviteMember,
     fetchPendingInvitations,
     resendInvitation,
