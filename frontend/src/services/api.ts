@@ -1811,15 +1811,20 @@ const realApi = {
   },
 
   team: {
+    // GET /users/ defaults to limit=20, newest first (server-side cap is
+    // 100). TeamView has no pagination UI at all, so without an explicit
+    // limit here, anyone past the 20 most recently created users silently
+    // never appeared in the member list or its stats — not a search
+    // problem, the app just never asked the backend for them.
     list: async (): Promise<User[]> => {
-      const response = await apiClient.get<any>('/users/')
+      const response = await apiClient.get<any>('/users/', { params: { limit: 100 } })
       const data = unwrapResponseData<any>(response)
       const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
       return items.map((u: any) => mapUserFromApi(u as Record<string, unknown>))
     },
 
     listByApplication: async (appId: string): Promise<User[]> => {
-      const response = await apiClient.get<any>('/users/', { params: { application_id: appId } })
+      const response = await apiClient.get<any>('/users/', { params: { application_id: appId, limit: 100 } })
       const data = unwrapResponseData<any>(response)
       const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
       return items.map((u: any) => mapUserFromApi(u as Record<string, unknown>))
