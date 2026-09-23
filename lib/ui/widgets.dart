@@ -304,6 +304,10 @@ class AsyncView<T> extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
     return value.when(
+      // El sondeo de Supabase recarga los providers periódicamente. Conservar
+      // los datos anteriores evita sustituir toda la pantalla por un spinner.
+      skipLoadingOnReload: true,
+      skipError: true,
       data: builder,
       loading: () => const Center(
           child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
