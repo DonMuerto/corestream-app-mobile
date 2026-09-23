@@ -17,10 +17,25 @@ class S {
 
   static const Map<String, String> _es = {
     'app_name': 'CoreStream',
-    'login_sub':
-        'Selecciona un usuario demo para entrar. La app adapta la navegación y los permisos según el rol, igual que la versión web.',
+    'login_sub': 'Ingresa con una cuenta de prueba para explorar CoreStream según cada rol.',
     'demo_note': 'Datos de demostración — ningún cambio se guarda.',
     'api_mode': 'Conectado al servidor',
+    'login_demo_banner':
+        'DEMO · Sesión local de prueba. Este acceso no se conecta ni autentica contra un servidor.',
+    'login_demo_accounts_title': 'Cuentas de prueba',
+    'login_demo_password': 'Contraseña compartida',
+    'login_email': 'Correo electrónico',
+    'login_password': 'Contraseña',
+    'login_submit': 'Entrar',
+    'login_loading': 'Ingresando…',
+    'login_toggle_password': 'Mostrar u ocultar contraseña',
+    'login_email_required': 'Ingresa tu correo electrónico.',
+    'login_email_invalid': 'Ingresa un correo electrónico válido.',
+    'login_password_required': 'Ingresa tu contraseña.',
+    'login_invalid_credentials': 'Correo o contraseña demo incorrectos',
+    'login_failed': 'No se pudo completar el ingreso demo. Intenta de nuevo.',
+    'login_api_unavailable':
+        'Inicio de sesión con servidor no disponible en esta revisión.',
     'role_ADMIN': 'Administrador',
     'role_GROUP_LEADER': 'Líder de grupo',
     'role_DEVELOPER': 'Desarrollador',
@@ -153,10 +168,24 @@ class S {
 
   static const Map<String, String> _en = {
     'app_name': 'CoreStream',
-    'login_sub':
-        'Pick a demo user to sign in. The app adapts navigation and permissions to the role, just like the web version.',
+    'login_sub': 'Sign in with a test account to explore CoreStream by role.',
     'demo_note': 'Demo data — nothing is saved.',
     'api_mode': 'Connected to server',
+    'login_demo_banner':
+        'DEMO · Local test session. This sign-in does not connect to or authenticate with a server.',
+    'login_demo_accounts_title': 'Test accounts',
+    'login_demo_password': 'Shared password',
+    'login_email': 'Email',
+    'login_password': 'Password',
+    'login_submit': 'Sign in',
+    'login_loading': 'Signing in…',
+    'login_toggle_password': 'Show or hide password',
+    'login_email_required': 'Enter your email.',
+    'login_email_invalid': 'Enter a valid email address.',
+    'login_password_required': 'Enter your password.',
+    'login_invalid_credentials': 'Incorrect demo email or password',
+    'login_failed': 'Could not complete demo sign-in. Try again.',
+    'login_api_unavailable': 'Server sign-in is unavailable in this review.',
     'role_ADMIN': 'Administrator',
     'role_GROUP_LEADER': 'Group leader',
     'role_DEVELOPER': 'Developer',

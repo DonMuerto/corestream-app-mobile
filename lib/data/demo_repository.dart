@@ -12,6 +12,13 @@ import '../models/models.dart';
 import 'repository.dart';
 
 class DemoRepository implements CoreStreamRepository {
+  static const demoEmailByUserId = <String, String>{
+    'u1': 'ana@demo.corestream.local',
+    'u2': 'luis@demo.corestream.local',
+    'u3': 'diego@demo.corestream.local',
+  };
+  static const demoPassword = 'Demo2026!';
+
   DemoRepository() {
     _seed();
   }
@@ -341,6 +348,19 @@ class DemoRepository implements CoreStreamRepository {
 
   @override
   Future<List<User>> loginOptions() async => _users.take(3).toList();
+
+  /// Resuelve las credenciales ficticias de las tres cuentas expuestas por
+  /// [loginOptions]. No modifica la sesión; el provider inicia sesión solo
+  /// después de validar que estas credenciales correspondan a un usuario.
+  User? userForDemoCredentials(String email, String password) {
+    if (password != demoPassword) return null;
+
+    final normalizedEmail = email.trim().toLowerCase();
+    for (final user in _users.take(3)) {
+      if (demoEmailByUserId[user.id] == normalizedEmail) return user;
+    }
+    return null;
+  }
 
   @override
   Future<User> login(User user) async {

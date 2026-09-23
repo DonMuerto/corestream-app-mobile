@@ -22,6 +22,50 @@ void main() {
 
   tearDown(() => repo.dispose());
 
+  test('las tres credenciales demo identifican los usuarios y roles previstos', () async {
+    const expectedRoles = {
+      'ana@demo.corestream.local': UserRole.admin,
+      'luis@demo.corestream.local': UserRole.groupLeader,
+      'diego@demo.corestream.local': UserRole.developer,
+    };
+
+    expect(await repo.loginOptions(), hasLength(3));
+    for (final entry in expectedRoles.entries) {
+      final user = repo.userForDemoCredentials(entry.key, DemoRepository.demoPassword);
+      expect(user, isNotNull);
+      expect(user!.role, entry.value);
+      expect(DemoRepository.demoEmailByUserId[user.id], entry.key);
+    }
+  });
+
+  test('normaliza solo el correo y rechaza credenciales demo incorrectas', () {
+    expect(
+      repo.userForDemoCredentials(
+        ' ANA@DEMO.CORESTREAM.LOCAL ',
+        DemoRepository.demoPassword,
+      )?.id,
+      'u1',
+    );
+    expect(
+      repo.userForDemoCredentials(
+        'ana@demo.corestream.local',
+        ' ${DemoRepository.demoPassword}',
+      ),
+      isNull,
+    );
+    expect(
+      repo.userForDemoCredentials(
+        'unknown@demo.corestream.local',
+        DemoRepository.demoPassword,
+      ),
+      isNull,
+    );
+    expect(
+      repo.userForDemoCredentials('ana@demo.corestream.local', 'incorrecta'),
+      isNull,
+    );
+  });
+
   test('asignar un ticket notifica al asignado', () async {
     await repo.login(leader);
     await repo.assignTicket('t3', dev.id);

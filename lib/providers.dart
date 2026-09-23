@@ -42,6 +42,19 @@ class AuthNotifier extends StateNotifier<User?> {
 
   Future<void> loginAs(User user) async => state = await _repo.login(user);
 
+  /// El formulario mock solo valida cuentas del repositorio demo. No enruta
+  /// credenciales de la UI hacia ApiRepository.login(User).
+  Future<bool> loginWithDemoCredentials(String email, String password) async {
+    final repo = _repo;
+    if (repo is! DemoRepository) return false;
+
+    final user = repo.userForDemoCredentials(email, password);
+    if (user == null) return false;
+
+    state = await repo.login(user);
+    return true;
+  }
+
   Future<void> logout() async {
     await _repo.logout();
     state = null;
