@@ -53,6 +53,10 @@ proyecto API, nunca en variables compiladas de Flutter. La compilación Web
 usa `/api` con un proxy de mismo origen hacia FastAPI; Android utiliza la URL
 HTTPS de la API. No copiar `.env.vercel.local` al cliente ni a Git.
 
+El proxy conserva las barras finales de las rutas oficiales (por ejemplo,
+`/api/applications/` y `/api/tickets/`) y deshabilita su caché. Quitarlas
+puede provocar 404 o redirecciones a otro origen en vez de llamadas autenticadas.
+
 Operaciones manuales desde `backend/`, con las dependencias oficiales:
 
 ```powershell

@@ -4,6 +4,7 @@ Solo crea un ticket temporal en una aplicación/épica de verificación;
 lo borra al terminar. No imprime contraseñas, tokens ni cookies.
 """
 import asyncio
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -18,18 +19,21 @@ load_dotenv(BACKEND / ".env.vercel.local", override=True)
 load_dotenv(BACKEND / ".env.cloud.admin.local", override=True)
 
 
-async def main():
+async def main(via_flutter=False):
     from sqlalchemy import select
 
     from app.database import dispose_engine, get_session_maker
     from app.models import Ticket
 
-    base = "https://corestream-app-api-grupo1.vercel.app/api"
+    host = "corestream-app-base-grupo1" if via_flutter else "corestream-app-api-grupo1"
+    base = f"https://{host}.vercel.app/api"
     async with httpx.AsyncClient(base_url=base, timeout=35) as client:
         health = await client.get("/health")
         assert health.status_code == 200, f"Health HTTP {health.status_code}"
         assert health.json()["checks"] == {"database": "ok", "redis": "ok"}
         print("API HTTPS -> PostgreSQL y Redis: OK (sin bypass de Vercel)")
+        if via_flutter:
+            print("Proxy de mismo origen de Flutter: OK")
         login = await client.post("/auth/login", json={
             "email": os.environ["CLOUD_ADMIN_EMAIL"],
             "password": os.environ["CLOUD_ADMIN_PASSWORD"],
@@ -92,8 +96,11 @@ async def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--via-flutter", action="store_true", help="Verifica también el proxy HTTPS usado por Flutter Web")
+    args = parser.parse_args()
     try:
-        asyncio.run(main())
+        asyncio.run(main(via_flutter=args.via_flutter))
     except Exception as exc:
         message = str(exc) if isinstance(exc, AssertionError) else type(exc).__name__
         print("Verificación incompleta: " + message)
