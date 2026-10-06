@@ -26,6 +26,8 @@ class NotificationType(str, Enum):
     TICKET_COMPLETED  = "TICKET_COMPLETED"
     QUESTION_RAISED   = "QUESTION_RAISED"
     SYSTEM            = "SYSTEM"
+    INCIDENT_REPORTED = "INCIDENT_REPORTED"
+    INCIDENT_ASSIGNED = "INCIDENT_ASSIGNED"
 
 
 class Notification(Base, BaseEntity):
@@ -40,6 +42,12 @@ class Notification(Base, BaseEntity):
     ticket_id: Mapped[PyUUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("tickets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    incident_id: Mapped[PyUUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("incidents.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )

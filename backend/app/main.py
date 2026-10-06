@@ -40,6 +40,7 @@ from app.routers import (
     websocket,
 )
 from app.services.notification_service import set_arq_pool
+from mobile_api import include_mobile_routers
 
 logger = logging.getLogger("corestream")
 
@@ -208,6 +209,7 @@ app.include_router(uploads.router)  # prefijo embebido en el router: /api/upload
 app.include_router(support_tickets.router, prefix="/api/support-tickets")
 app.include_router(incidents.router, prefix="/api")
 app.include_router(meetings.router, prefix="/api")
+include_mobile_routers(app)
 
 
 # Endpoint raíz de salud — Railway lo usa como healthcheck en /health

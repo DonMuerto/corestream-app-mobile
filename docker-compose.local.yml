@@ -1,0 +1,25 @@
+# Último overlay para el PC del equipo. No cambia el despliegue oficial.
+# Compose >= 2.24.4: !override elimina los puertos públicos del perfil base.
+services:
+  backend:
+    environment:
+      ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:7357,http://127.0.0.1:7357
+      FORWARDED_ALLOW_IPS: 127.0.0.1
+      SMTP_HOST: ""
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      MAIL_FROM: ""
+      AZURE_TRANSLATOR_KEY: ""
+    ports: !override
+      - "127.0.0.1:8000:8000"
+  frontend:
+    environment:
+      VITE_API_TARGET: http://backend:8000
+    ports: !override
+      - "127.0.0.1:5173:5173"
+  postgres:
+    ports: !override
+      - "127.0.0.1:5432:5432"
+  redis:
+    ports: !override
+      - "127.0.0.1:6379:6379"

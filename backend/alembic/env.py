@@ -15,6 +15,7 @@ if config.config_file_name is not None:
 
 # Importar modelos para registrar tablas en metadata
 import app.models  # noqa: F401  pylint: disable=unused-import
+import mobile_api.models  # noqa: F401
 
 target_metadata = Base.metadata
 

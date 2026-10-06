@@ -1,0 +1,10 @@
+# Dependencias adicionales del módulo móvil
+# (instalar junto a backend/requirements.txt)
+
+# Notificaciones push — Firebase Cloud Messaging
+# Sin FIREBASE_CREDENTIALS_JSON configurada, el módulo funciona en modo
+# simulado y esta dependencia puede omitirse en desarrollo.
+firebase-admin==6.5.0
+
+# Tests del módulo (httpx y pytest ya están en requirements.txt)
+pytest-asyncio==0.24.0
