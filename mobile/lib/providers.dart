@@ -20,8 +20,12 @@ final prefsProvider = Provider<SharedPreferences>((ref) {
 });
 
 final repositoryProvider = Provider<CoreStreamRepository>((ref) {
-  final repo =
-      AppConfig.isDemo ? DemoRepository() : ApiRepository(AppConfig.apiBaseUrl);
+  final repo = AppConfig.isDemo
+      ? DemoRepository()
+      : ApiRepository(AppConfig.apiBaseUrl,
+          webSocketBaseUrl: AppConfig.webSocketApiBaseUrl.isEmpty
+              ? null
+              : AppConfig.webSocketApiBaseUrl);
   ref.onDispose(repo.dispose);
   return repo;
 });

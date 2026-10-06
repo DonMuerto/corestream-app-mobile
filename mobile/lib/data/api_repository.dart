@@ -4,13 +4,13 @@
 ///   POST /auth/login · POST /auth/logout
 ///   GET  /mobile/dashboard · /mobile/applications/{id}/board
 ///   GET  /mobile/tickets/{id}/detail · /mobile/team/workload
-///   POST /tickets/{id}/assign|start|complete|question|resolve-question|redirect
-///   PUT  /subtasks/{id} · POST /tickets/
+///   PUT /tickets/{id} · POST /tickets/{id}/start|complete|question|resolve-question|redirect
+///   PUT /tickets/{ticketId}/subtasks/{id} · POST /tickets/
 ///   GET  /incidents/... · GET/POST /notifications/...
 ///   POST /devices/  (token FCM)
 ///
 /// Las notificaciones en tiempo real llegan por el WebSocket autenticado
-/// `/ws/mobile/notifications?token=` (reconexión con backoff simple).
+/// `/ws/{userId}?ticket=` con ticket opaco de un uso y reconexión con backoff.
 library;
 
 import 'dart:async';
@@ -21,11 +21,13 @@ import 'package:flutter/material.dart' show Color;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/models.dart';
+import 'api_endpoint.dart';
 import 'repository.dart';
 
 class ApiRepository implements CoreStreamRepository {
-  ApiRepository(String baseUrl)
-      : _dio = Dio(BaseOptions(
+  ApiRepository(String baseUrl, {String? webSocketBaseUrl})
+      : _webSocketBaseUrl = webSocketBaseUrl,
+        _dio = Dio(BaseOptions(
           baseUrl: baseUrl,
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 20),
@@ -41,6 +43,7 @@ class ApiRepository implements CoreStreamRepository {
   }
 
   final Dio _dio;
+  final String? _webSocketBaseUrl;
   String? _accessToken;
   String? _refreshToken;
   User? _current;
@@ -113,8 +116,7 @@ class ApiRepository implements CoreStreamRepository {
 
   @override
   Future<List<User>> loginOptions() async {
-    // En modo API el login real es email/contraseña; para la demo comercial
-    // se listan los usuarios activos y se pide la contraseña al elegir.
+    // En modo API no se simulan identidades mediante un selector de usuarios.
     return const [];
   }
 
@@ -161,9 +163,8 @@ class ApiRepository implements CoreStreamRepository {
 
   Future<void> _connectWebSocket() async {
     _wsShouldRun = true;
-    final httpBase = Uri.base.resolve(_dio.options.baseUrl);
-    final base = httpBase
-        .replace(scheme: httpBase.scheme == 'https' ? 'wss' : 'ws')
+    final base = resolveWebSocketBase(_dio.options.baseUrl,
+            webSocketBase: _webSocketBaseUrl)
         .toString();
     var delay = const Duration(seconds: 2);
     while (_wsShouldRun) {
@@ -344,7 +345,12 @@ class ApiRepository implements CoreStreamRepository {
         epicsCount: board.epics.length,
         ticketsTotal: tickets.length,
         ticketsDone: tickets.where((t) => t.status == TicketStatus.done).length,
-        overdue: tickets.where((t) => t.dueDate != null && t.status != TicketStatus.done && t.dueDate!.isBefore(DateTime.now())).length,
+        overdue: tickets
+            .where((t) =>
+                t.dueDate != null &&
+                t.status != TicketStatus.done &&
+                t.dueDate!.isBefore(DateTime.now()))
+            .length,
       ));
     }
     return projects;

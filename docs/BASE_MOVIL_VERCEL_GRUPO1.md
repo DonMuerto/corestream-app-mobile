@@ -53,6 +53,10 @@ proyecto API, nunca en variables compiladas de Flutter. La compilación Web
 usa `/api` con un proxy de mismo origen hacia FastAPI; Android utiliza la URL
 HTTPS de la API. No copiar `.env.vercel.local` al cliente ni a Git.
 
+WebSocket en Web se conecta directamente a la API mediante `CS_WS_API_URL`;
+el proxy HTTP externo devolvió 404 en el upgrade durante la verificación.
+Se obtiene antes un ticket opaco de un uso: nunca se pone el JWT en la URL.
+
 El proxy conserva las barras finales de las rutas oficiales (por ejemplo,
 `/api/applications/` y `/api/tickets/`) y deshabilita su caché. Quitarlas
 puede provocar 404 o redirecciones a otro origen en vez de llamadas autenticadas.
@@ -64,6 +68,7 @@ vercel env pull .env.vercel.local --environment=development
 python scripts/cloud_backend.py check
 python scripts/cloud_backend.py migrate
 python scripts/check_cloud_api.py
+python scripts/check_cloud_api.py --via-flutter
 ```
 
 El check remoto crea un ticket temporal de prueba y lo elimina; compara los
@@ -100,8 +105,23 @@ Flutter: `flutter test` verifica el inicio real. El smoke del selector antiguo
 solo se ejecuta con `--dart-define=CS_DEMO=true`, modo explícito de referencia;
 no está activo en los despliegues del proyecto.
 
+Verificación alojada del 2026-10-06: login desde Flutter, creación de ticket
+desde el botón del tablero y lectura directa de su fila en Neon, CRUD mediante
+el proxy y revocación de sesión en Redis. El socket directo abre conexión y
+recibe una sonda de pub/sub; esto no prueba la entrega de jobs ARQ ni implica
+que toda edición publique eventos (el backend no los publica al cambiar solo
+la prioridad). `scripts/check_cloud_ui.py` verifica el ticket temporal y puede
+limpiarlo con `--title "Prueba Flutter UI ..." --cleanup`.
+
+La repetición de tests Flutter en Windows quedó bloqueada por Control de
+aplicaciones; no se cambió esa protección. La alternativa con destino navegador
+no completó el arranque. Los tres casos puros del resolvedor del socket sí
+pasaron con `dart run tool/check_api_endpoint.dart`; no reemplazan la suite
+completa ni las pruebas en Android.
+
 Para desplegar código fuente: directorio raíz `backend` para la API y `mobile`
 para Flutter. `mobile/scripts/build-vercel.sh` instala la versión fijada del SDK.
-Alternativa manual: compilar `flutter build web --dart-define=CS_API_URL=/api`,
+Alternativa manual: compilar
+`flutter build web --dart-define=CS_API_URL=/api --dart-define=CS_WS_API_URL=https://corestream-app-api-grupo1.vercel.app/api`,
 copiar `vercel.static.json` a `build/web/vercel.json` y publicar esa carpeta con
 el mismo proyecto Vercel vinculado. Nunca publicar solo el wireframe HTML.
