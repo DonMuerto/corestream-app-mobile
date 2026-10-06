@@ -291,10 +291,10 @@ class TicketStateMachine:
             ticket.status.value if hasattr(ticket.status, "value") else ticket.status
         )
 
-        if not TicketStateMachine.can_transition(current_status, "IN_PROGRESS"):
+        if current_status not in ("BLOCKED", "BLOCKED_QUESTION") or not TicketStateMachine.can_transition(current_status, "IN_PROGRESS"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"No se puede transicionar de {current_status} a IN_PROGRESS",
+                detail=f"No se puede resolver un bloqueo desde {current_status}",
             )
 
         blocked_seconds = TimerService.finish_blocked_period(ticket)
