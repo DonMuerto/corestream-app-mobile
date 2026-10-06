@@ -25,6 +25,9 @@ El código se publica con autorización, sin secretos ni datos de usuarios.
 - PostgreSQL en Neon; Redis TLS en Upstash. No usa la demo Supabase.
 - Login real, sin registro público ni cuentas mock activas por defecto.
   Primer administrador preparado manualmente; demás usuarios por invitación.
+  Se migraron los cinco perfiles persistidos de la demo como cuentas de prueba
+  autenticadas; no hay datos mock en memoria en la app publicada. Ver la guía
+  de traslado para sus credenciales privadas y las equivalencias del esquema.
 
 Esta base no completa aún todos los requisitos del Grupo 1: faltan las
 pantallas de invitaciones, refresh/almacenamiento seguro móvil, FCM,
@@ -51,6 +54,7 @@ Trasladar código no implica publicar automáticamente otra versión en producci
 
 ## Guías
 
+- [Traslado Supabase → PostgreSQL y Docker](docs/MIGRACION_SUPABASE_POSTGRES.md)
 - [PostgreSQL, login e invitaciones](docs/POSTGRES_LOGIN_INVITACIONES.md)
 - [Base móvil, pruebas y límites de Vercel](docs/BASE_MOVIL_VERCEL_GRUPO1.md)
 - [Requisitos oficiales pendientes](docs/REVISION_REQUISITOS_GRUPO1.md)

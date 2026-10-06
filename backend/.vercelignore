@@ -1,4 +1,5 @@
 .env*
+*.local.json
 !.env.example
 .agents/
 skills-lock.json

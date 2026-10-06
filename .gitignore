@@ -51,6 +51,7 @@ pnpm-debug.log*
 # Variables de entorno frontend
 .env.local
 .env.*.local
+*.local.json
 
 # Local credentials and generated Flutter files
 .vercel/
