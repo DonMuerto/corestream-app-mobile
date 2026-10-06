@@ -17,13 +17,14 @@ TicketEvent parseApiTicketEvent(Map<String, dynamic> row) {
       : <String, dynamic>{};
   final user = row['user'];
   final wire = (row['event_type'] ?? '').toString();
-  final from = _firstText([payload['from_status']]);
-  final to = _firstText([payload['to_status']]);
+  final from = _firstText([payload['from_status'], payload['previous_status']]);
+  final to = _firstText([payload['to_status'], payload['new_status']]);
   return TicketEvent(
     type: switch (wire) {
       'STATUS_CHANGED' => 'STATUS',
       'QUESTION_RAISED' => 'QUESTION',
       'QUESTION_RESOLVED' => 'RESOLVED',
+      'TICKET_ASSIGNED' => 'ASSIGNED',
       _ => wire,
     },
     userId: user is Map ? (user['id'] ?? '').toString() : '',
@@ -34,6 +35,7 @@ TicketEvent parseApiTicketEvent(Map<String, dynamic> row) {
       payload['question'],
       payload['resolution'],
       payload['reason'],
+      payload['justification'],
       payload['message'],
     ]),
     toUserId: _firstText([payload['to_user_id'], payload['assignee_id']]),

@@ -338,10 +338,17 @@ async def get_ticket_detail(
             if hasattr(ev, column):
                 raw_payload = getattr(ev, column)
                 break
+        # CS-020 stores recipients in FK columns and its reason in detail.
+        # Expose both through the existing flexible BFF payload, read-only.
+        event_payload = dict(raw_payload) if isinstance(raw_payload, dict) else {}
+        if ev.to_user_id:
+            event_payload.setdefault("to_user_id", str(ev.to_user_id))
+        if ev.from_user_id:
+            event_payload.setdefault("from_user_id", str(ev.from_user_id))
         events.append(TicketEventDetail(
             id=ev.id,
             event_type=_val(ev.event_type),
-            payload=raw_payload if isinstance(raw_payload, dict) else None,
+            payload=event_payload or None,
             created_at=ev.created_at,
             user=UserBrief.model_validate(ev_user) if ev_user else None,
         ))

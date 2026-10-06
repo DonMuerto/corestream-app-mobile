@@ -132,11 +132,54 @@ Requiere las dependencias del backend y los archivos privados locales.
 No ejecutar la suite de integración contra Neon: usa `corestream_test` y
 Redis 15, nunca datos del proyecto.
 
-Verificado: ocho tests nuevos de mapeo/migración e idempotencia pasaron en
-PostgreSQL local; reconciliación de las 118 filas en Neon; login y dashboard
-de cinco roles por HTTPS; creación de ticket desde Flutter y confirmación SQL;
-asignación a Diego desde la web. Los tests de Flutter en Windows siguen sujetos
-al bloqueo de Control de aplicaciones ya documentado; no se deshabilitó.
+Verificado: reconciliación de las 118 filas en Neon; login y dashboard de las
+cinco cuentas por HTTPS; creación y asignación de ticket desde Flutter con
+confirmación SQL. La regresión final pasó **105 tests del backend**, incluyendo
+mapeo/idempotencia, API móvil, permisos, ciclo de vida y timers en PostgreSQL
+local descartable. **10 tests Flutter** del endpoint WebSocket, historial y
+contadores pasaron en Linux durante el build de Vercel. No representan la suite
+completa de widgets ni pruebas en Android. El bloqueo de Control de aplicaciones
+de Windows sigue intacto; no se deshabilitó.
+
+## Correcciones verificadas al usar la app
+
+- El historial interpreta `payload.from_status`, `to_status`, `question`,
+  `resolution`, `reason`, `justification` y destinatario del backend oficial. Antes mostraba
+  preguntas vacías y una transición incorrecta `TODO → TODO`.
+- El historial se ordena cronológicamente en el dominio y se muestra con el
+  evento reciente primero; una segunda pregunta muestra el texto reciente.
+- `blocked_at` registra el inicio del bloqueo en PostgreSQL. Al resolver o
+  reasignar, los segundos se acumulan una sola vez en `blocked_time_seconds`.
+  El contador visual de bloqueo es independiente del trabajo y no escribe
+  una fila cada segundo. `blocked_started_at` es un campo adicional del BFF.
+- Una reasignación preserva el tiempo de trabajo, cierra el periodo de bloqueo,
+  limpia los cronómetros y vuelve a `TODO`. Re-elegir al mismo responsable no
+  reinicia su estado. El evento `UPDATED` incluye destinatarios y estados;
+  la actualización se publica por el canal general de tickets.
+- Solo ADMIN/TEAM_LEADER resuelven preguntas; los botones móviles coinciden
+  con esa validación. Los tickets antiguos `REDIRECTED` pueden iniciarse por
+  su destinatario con las mismas comprobaciones de asignación.
+- El detalle móvil incorpora los destinatarios que CS-020 guarda en las FK
+  de `ticket_events`, sin escribir ni cambiar el esquema. El cliente reconoce
+  `TICKET_ASSIGNED`, `previous_status`/`new_status` y la justificación del traspaso.
+
+## Publicación autorizada
+
+Scope `alvaortiz-1858`, entorno Production, sin tocar la demo Supabase:
+
+| Componente | Proyecto | Build activado | Commit de código |
+| --- | --- | --- | --- |
+| Flutter | `corestream-app-base-grupo1` | `dpl_GNHWwz9Ce1Sfn6wPopLkhfigQG8A` | `64f8007` |
+| FastAPI | `corestream-app-api-grupo1` | `dpl_NHR3crP2oGSP6H2jtwEVwKaDJwoz` | `eeb5202` |
+
+Ambos builds llegaron a READY y se promovieron tras verificar sus artefactos
+y la salud PostgreSQL/Redis. La API sigue expuesta bajo `/api` del mismo HTTPS
+de Flutter; el WebSocket usa la API directa con ticket de un uso. La sonda
+Redis pub/sub → WebSocket pasó; no equivale a una prueba de entrega ARQ/FCM.
+La consulta acotada de errores del build API final no devolvió entradas.
+
+`main` se mantuvo en `1311a8b`; `mejoras/pantalla-login`, en `167c0bf`.
+Todos los cambios de esta entrega están en la misma rama `desarrollo`.
 
 Esto es una base persistente más cercana a un MVP, no una certificación de
 producto completo. Los datos importados siguen siendo de demostración. FCM,

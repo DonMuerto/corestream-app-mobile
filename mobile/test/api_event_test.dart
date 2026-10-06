@@ -48,6 +48,22 @@ void main() {
     expect(parsed.text, 'Traspaso de prueba');
   });
 
+  test('CS-020 justification, recipient and assignment are displayed', () {
+    final parsed = parseApiTicketEvent(event('REDIRECTED', {
+      'justification': 'Traspaso con justificación oficial',
+      'to_user_id': 'recipient-uuid',
+      'previous_status': 'IN_PROGRESS',
+      'new_status': 'TODO',
+    }));
+    expect(parsed.text, 'Traspaso con justificación oficial');
+    expect(parsed.toUserId, 'recipient-uuid');
+    expect(parsed.fromStatus, TicketStatus.inProgress);
+    expect(parsed.toStatus, TicketStatus.todo);
+    expect(parseApiTicketEvent(event('TICKET_ASSIGNED', {
+      'to_user_id': 'recipient-uuid',
+    })).type, 'ASSIGNED');
+  });
+
   test('Imported comments and events without payload remain supported', () {
     expect(parseApiTicketEvent(event('QUESTION_RAISED', {
       'comment': 'Pregunta importada',

@@ -96,3 +96,24 @@ async def test_legacy_redirected_ticket_can_be_started_only_by_recipient(client,
     res = await client.post(f'/api/tickets/{ticket_id}/start', headers=dev_headers)
     assert res.status_code == 200
     assert res.json()['status'] == 'IN_PROGRESS'
+
+
+async def test_redirection_detail_exposes_persisted_reason_and_recipient(client, dev_headers,
+                                                                       leader_headers, ticket, dev2_id):
+    ticket_id = ticket['id']
+    assert (await client.post(f'/api/tickets/{ticket_id}/start', headers=dev_headers)).status_code == 200
+    reason = 'Traspaso de verificación de trazabilidad'
+    res = await client.post(f'/api/tickets/{ticket_id}/redirect', headers=dev_headers,
+                           json={'to_user_id': dev2_id, 'justification': reason})
+    assert res.status_code == 200
+    detail = (await client.get(f'/api/mobile/tickets/{ticket_id}/detail', headers=leader_headers)).json()
+    redirected = next(e for e in detail['events'] if e['event_type'] == 'REDIRECTED')
+    assert redirected['payload']['to_user_id'] == dev2_id
+    assert redirected['payload']['justification'] == reason
+    assigned = next(e for e in detail['events'] if e['event_type'] == 'TICKET_ASSIGNED')
+    assert assigned['payload']['to_user_id'] == dev2_id
+    async with get_session_maker()() as db:
+        saved = await db.get(Ticket, UUID(ticket_id))
+        assert saved.status == TicketStatus.TODO
+        assert saved.assignee_id == UUID(dev2_id)
+        assert saved.timer_started_at is None
