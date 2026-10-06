@@ -147,6 +147,7 @@ class TimerState(BaseModel):
     time_spent_seconds: int
     blocked_time_seconds: int
     started_at: Optional[datetime] = None
+    blocked_started_at: Optional[datetime] = None
 
 
 class TicketPermissions(BaseModel):

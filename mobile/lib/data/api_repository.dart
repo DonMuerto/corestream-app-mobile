@@ -425,6 +425,7 @@ class ApiRepository implements CoreStreamRepository {
       runningSince: (timer['is_running'] ?? false) as bool
           ? DateTime.tryParse((timer['started_at'] ?? '') as String)
           : null,
+      blockedSince: DateTime.tryParse((timer['blocked_started_at'] ?? '') as String),
       prLink: tj['pr_link'] as String?,
       subtasks: [
         for (final s in (j['subtasks'] ?? []) as List)

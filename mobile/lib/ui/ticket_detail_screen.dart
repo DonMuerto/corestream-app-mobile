@@ -281,7 +281,10 @@ class _TimerCardState extends ConsumerState<_TimerCard> {
   void initState() {
     super.initState();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && widget.ticket.runningSince != null) setState(() {});
+      if (mounted &&
+          (widget.ticket.runningSince != null || widget.ticket.blockedSince != null)) {
+        setState(() {});
+      }
     });
   }
 
@@ -314,7 +317,7 @@ class _TimerCardState extends ConsumerState<_TimerCard> {
                 Text(blocked ? s('blocked_waiting') : s('time_spent'),
                     style: TextStyle(fontSize: 11.5, color: c.mut)),
                 const SizedBox(height: 2),
-                Text(fmtTimer(t.liveSpentSeconds),
+                Text(fmtTimer(blocked ? t.liveBlockedSeconds : t.liveSpentSeconds),
                     style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w700,

@@ -69,4 +69,22 @@ void main() {
     expect(parsed.last.text, 'La más reciente');
     expect(parsed.first.text, 'La anterior');
   });
+
+  test('Blocked clock is independent of accumulated work time', () {
+    final ticket = Ticket(
+      id: 'ticket', number: 0, epicId: 'epic', title: 'QA', description: '',
+      spentSeconds: 37, blockedSeconds: 20,
+      blockedSince: DateTime.now().subtract(const Duration(seconds: 120)),
+    );
+    expect(ticket.liveSpentSeconds, 37);
+    expect(ticket.liveBlockedSeconds, inInclusiveRange(140, 142));
+  });
+
+  test('A cleared block start does not keep accumulating time', () {
+    final ticket = Ticket(
+      id: 'ticket', number: 0, epicId: 'epic', title: 'QA', description: '',
+      blockedSeconds: 30,
+    );
+    expect(ticket.liveBlockedSeconds, 30);
+  });
 }

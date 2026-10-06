@@ -38,6 +38,25 @@ class TimerService:
     - stop_blocked_timer: Finaliza contador de bloqueo
     """
 
+    @staticmethod
+    def begin_blocked_period(ticket: Ticket, now: Optional[datetime] = None) -> None:
+        """Persist the block start in the existing DB column, not only Redis."""
+        if ticket.blocked_at is None:
+            ticket.blocked_at = now or datetime.now(timezone.utc)
+
+    @staticmethod
+    def finish_blocked_period(ticket: Ticket, now: Optional[datetime] = None) -> int:
+        """Accumulate once; the caller commits this with its state transition."""
+        started = ticket.blocked_at
+        elapsed = 0
+        if started is not None:
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            elapsed = max(0, int(((now or datetime.now(timezone.utc)) - started).total_seconds()))
+            ticket.blocked_time_seconds = (ticket.blocked_time_seconds or 0) + elapsed
+        ticket.blocked_at = None
+        return elapsed
+
     async def start_timer(
         self,
         ticket_id: UUID,

@@ -452,9 +452,15 @@ async def update_ticket(
         )
 
     old_assignee_id = ticket.assignee_id
+    old_status = ticket.status
+    reassigned = 'assignee_id' in update_data and update_data['assignee_id'] != old_assignee_id
 
     try:
-        if 'assignee_id' in update_data and ticket.status in (TicketStatus.IN_PROGRESS, TicketStatus.BLOCKED, TicketStatus.BLOCKED_QUESTION):
+        if reassigned and ticket.status in (TicketStatus.IN_PROGRESS, TicketStatus.BLOCKED, TicketStatus.BLOCKED_QUESTION):
+            # Preserve work/block time before returning the new assignee to TODO.
+            await timer_service.pause_timer(ticket.id, db)
+            timer_service.finish_blocked_period(ticket)
+            ticket.block_reason = None
             update_data['status'] = TicketStatus.TODO
         for field, value in update_data.items():
             setattr(ticket, field, value)
@@ -484,12 +490,24 @@ async def update_ticket(
 
     # Registrar evento de actualización — fallo aquí no cancela la actualización ya guardada
     try:
+        audit_detail = "Ticket actualizado"
+        if reassigned:
+            audit_detail = {
+                "message": "Ticket actualizado",
+                "from_user_id": str(old_assignee_id) if old_assignee_id else None,
+                "to_user_id": str(ticket.assignee_id) if ticket.assignee_id else None,
+                "from_status": old_status.value,
+                "to_status": ticket.status.value,
+            }
         await ticket_state_machine.log_ticket_event(
             db, ticket_id, TicketEventType.UPDATED,
-            current_user.id, "Ticket actualizado"
+            current_user.id, audit_detail
         )
     except Exception:
         pass
+
+    if reassigned:
+        await _publish_ticket_status(ticket_id, ticket.status.value)
 
     # Volvemos a consultar el ticket pero incluyendo (selectinload) sus relaciones
     result_final = await db.execute(

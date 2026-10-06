@@ -358,6 +358,7 @@ async def get_ticket_detail(
             time_spent_seconds=ticket.time_spent_seconds or 0,
             blocked_time_seconds=ticket.blocked_time_seconds or 0,
             started_at=started_at,
+            blocked_started_at=ticket.blocked_at if _val(ticket.status) in ("BLOCKED", "BLOCKED_QUESTION") else None,
         ),
         permissions=TicketPermissions(**compute_ticket_permissions(
             role=get_role_name(current_user),

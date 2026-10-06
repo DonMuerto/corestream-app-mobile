@@ -24,6 +24,7 @@ async def main(args):
 
     snapshot = json.loads(await asyncio.to_thread((BACKEND / ".supabase-import.local.json").read_text, encoding="utf-8"))
     accounts = json.loads(await asyncio.to_thread((BACKEND / ".supabase-accounts.local.json").read_text, encoding="utf-8"))["accounts"]
+    ui_ticket = None
     async with get_session_maker()() as db:
         rows = (await db.execute(text("SELECT * FROM migration_archive.supabase_records WHERE source_project=:p"),
                                  {"p": snapshot["source_project"]})).mappings().all()
@@ -61,6 +62,12 @@ async def main(args):
             events = (await db.execute(select(TicketEvent).where(TicketEvent.ticket_id == ticket.id))).scalars().all()
             print("Ticket creado en la web confirmado en Neon: " + ticket.title)
             print(f"Estado {ticket.status.value}; prioridad {ticket.priority.value}; eventos {len(events)}; responsable {ticket.assignee_id}")
+            print(f"Segundos guardados: trabajo={ticket.time_spent_seconds}, bloqueo={ticket.blocked_time_seconds}.")
+            print("Historial: " + ", ".join(e.event_type.value for e in sorted(events, key=lambda e: e.created_at)))
+            ui_ticket = {"id": str(ticket.id), "status": ticket.status.value,
+                         "time_spent_seconds": ticket.time_spent_seconds,
+                         "blocked_time_seconds": ticket.blocked_time_seconds,
+                         "pr_link": ticket.pr_link}
     base = "https://corestream-app-base-grupo1.vercel.app/api"
     async with httpx.AsyncClient(base_url=base, timeout=45) as client:
         health = await client.get("/health")
@@ -77,6 +84,12 @@ async def main(args):
             dashboard = await client.get("/mobile/dashboard")
             assert dashboard.status_code == 200, f"Dashboard HTTP {dashboard.status_code}"
             print(f"Login + dashboard autenticados: {account['full_name']} ({account['role']}) OK")
+            if ui_ticket and account["role"] == "ADMIN":
+                detail = await client.get(f"/mobile/tickets/{ui_ticket['id']}/detail")
+                assert detail.status_code == 200
+                for field in ("status", "time_spent_seconds", "blocked_time_seconds", "pr_link"):
+                    assert detail.json()["ticket"][field] == ui_ticket[field], f"UI/API/DB mismatch: {field}"
+                print("El detalle de la API coincide con estado, tiempos y PR guardados en Neon: OK")
             await client.post("/auth/logout", json={})
             client.headers.pop("Authorization", None)
     await dispose_engine()

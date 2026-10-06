@@ -211,6 +211,7 @@ class Ticket {
     this.spentSeconds = 0,
     this.blockedSeconds = 0,
     this.runningSince,
+    this.blockedSince,
     this.prLink,
     List<Subtask>? subtasks,
     List<TicketEvent>? events,
@@ -233,6 +234,7 @@ class Ticket {
   int spentSeconds;
   int blockedSeconds;
   DateTime? runningSince;
+  DateTime? blockedSince;
   String? prLink;
   final List<Subtask> subtasks;
   final List<TicketEvent> events;
@@ -242,6 +244,11 @@ class Ticket {
 
   int get liveSpentSeconds => spentSeconds +
       (runningSince != null ? DateTime.now().difference(runningSince!).inSeconds : 0);
+
+  int get liveBlockedSeconds => blockedSeconds +
+      (blockedSince != null
+          ? DateTime.now().difference(blockedSince!).inSeconds.clamp(0, 2147483647).toInt()
+          : 0);
 
   int get subtasksDone => subtasks.where((s) => s.done).length;
 }

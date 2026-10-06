@@ -242,6 +242,7 @@ class TicketStateMachine:
 
         ticket.status = TicketStatus.BLOCKED_QUESTION
         ticket.block_reason = question_text
+        TimerService.begin_blocked_period(ticket)
 
         await TransitionAuditService.record_transition(
             db=db,
@@ -294,6 +295,7 @@ class TicketStateMachine:
                 detail=f"No se puede transicionar de {current_status} a IN_PROGRESS",
             )
 
+        blocked_seconds = TimerService.finish_blocked_period(ticket)
         await TimerService().resume_timer(ticket.id, db)
 
         ticket.status = TicketStatus.IN_PROGRESS
@@ -306,7 +308,7 @@ class TicketStateMachine:
             event_type=TicketEventType.QUESTION_RESOLVED,
             from_status=current_status,
             to_status="IN_PROGRESS",
-            extra={"resolution": resolution},
+            extra={"resolution": resolution, "blocked_seconds_this_period": blocked_seconds},
         )
 
         return {"status": "success", "ticket_id": str(ticket.id)}
