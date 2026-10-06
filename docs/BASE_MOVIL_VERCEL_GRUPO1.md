@@ -90,9 +90,11 @@ se conserva como contenedor de pruebas, sin información de clientes.
 - Carga/descarga de documentos se deshabilita explícitamente en el entorno
   cloud hasta configurar almacenamiento persistente. `/tmp` no guarda archivos
   entre instancias. En Docker se mantiene el volumen oficial.
-- La conexión Git usa `DonMuerto/corestream-app-mobile`, con raíces `backend`
-  o `mobile`. Los despliegues por CLI son independientes: trasladar código
-  no demuestra por sí solo una nueva publicación en la URL principal.
+- Al configurar despliegues automáticos por Git, usar
+  `DonMuerto/corestream-app-mobile`, con raíces `backend` o `mobile`.
+  Los proyectos alojados actualmente se publicaron por CLI y no estaban
+  conectados a Git al trasladar el código. Trasladarlo no publica por sí
+  solo una nueva versión en la URL principal ni modifica la demo antigua.
 - La API incluye invitaciones de un solo uso, pero Flutter aún no permite
   generarlas/aceptarlas mediante pantalla o deep link. SMTP no está configurado.
   Ver `POSTGRES_LOGIN_INVITACIONES.md`.

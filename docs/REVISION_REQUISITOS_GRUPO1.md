@@ -58,3 +58,8 @@ Ver [PostgreSQL, login e invitaciones](POSTGRES_LOGIN_INVITACIONES.md).
 
 Pruebas realizadas y limitaciones:
 [Base móvil de Vercel](BASE_MOVIL_VERCEL_GRUPO1.md).
+
+Al trasladar la base se repitieron las suites `test_invitations.py` y
+`test_auth.py`: 33 pruebas aprobadas contra PostgreSQL local `corestream_test`
+y Redis de pruebas, no Neon. Se verificó además la equivalencia de los 392
+archivos oficiales, salvo guías/reglas de Git y normalización de finales de línea.
