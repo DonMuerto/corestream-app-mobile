@@ -22,6 +22,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/models.dart';
 import 'api_endpoint.dart';
+import 'api_event.dart';
 import 'repository.dart';
 
 class ApiRepository implements CoreStreamRepository {
@@ -394,6 +395,12 @@ class ApiRepository implements CoreStreamRepository {
     final tj = j['ticket'] as Map<String, dynamic>;
     final timer = (j['timer'] ?? const {}) as Map<String, dynamic>;
     final perms = (j['permissions'] ?? const {}) as Map<String, dynamic>;
+    final eventRows = (j['events'] ?? []) as List;
+    for (final event in eventRows) {
+      if (event['user'] is Map) {
+        _parseUser((event['user'] as Map).cast<String, dynamic>());
+      }
+    }
 
     final ticket = Ticket(
       id: tj['id'].toString(),
@@ -427,19 +434,7 @@ class ApiRepository implements CoreStreamRepository {
             done: (s['is_completed'] ?? false) as bool,
           ),
       ],
-      events: [
-        for (final e in (j['events'] ?? []) as List)
-          TicketEvent(
-            type: _mapEventType((e['event_type'] ?? '') as String),
-            userId: e['user'] != null ? e['user']['id'].toString() : '',
-            ts: DateTime.tryParse((e['created_at'] ?? '') as String) ??
-                DateTime.now(),
-            text: e['payload'] is Map
-                ? (e['payload']['comment'] ?? e['payload']['question_text'])
-                    ?.toString()
-                : null,
-          ),
-      ],
+      events: parseApiTicketEvents(eventRows),
     );
 
     if (j['assignee'] != null)
@@ -477,13 +472,6 @@ class ApiRepository implements CoreStreamRepository {
       ),
     );
   }
-
-  String _mapEventType(String wire) => switch (wire) {
-        'STATUS_CHANGED' => 'STATUS',
-        'QUESTION_RAISED' => 'QUESTION',
-        'QUESTION_RESOLVED' => 'RESOLVED',
-        _ => wire,
-      };
 
   @override
   Future<List<Incident>> fetchIncidents() async {
