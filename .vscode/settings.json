@@ -1,5 +1,15 @@
 {
-  "dart.flutterSdkPath": "H:\\DUOC\\Capstone\\Tools\\flutter",
-  "dart.lineLength": 100,
-  "editor.formatOnSave": true
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "driver": "PostgreSQL",
+            "connectString": "postgresql+asyncpg://corestream:corestream@127.0.0.1:5432/corestream",
+            "name": "base de datos"
+        }
+    ],
+    "files.associations": {
+        "*.css": "tailwindcss"
+    }
 }

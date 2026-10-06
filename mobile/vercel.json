@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "true",
+  "buildCommand": "bash scripts/build-vercel.sh",
+  "outputDirectory": "build/web",
+  "rewrites": [
+    {"source": "/api/:path(.*)", "destination": "https://corestream-app-api-grupo1.vercel.app/api/:path"},
+    {"source": "/((?!api/).*)", "destination": "/index.html"}
+  ],
+  "headers": [
+    {"source": "/api/:path(.*)", "headers": [{"key": "Cache-Control", "value": "no-store"}, {"key": "x-vercel-enable-rewrite-caching", "value": "0"}]},
+    {"source": "/(.*)", "headers": [{"key": "X-Content-Type-Options", "value": "nosniff"}, {"key": "Referrer-Policy", "value": "strict-origin-when-cross-origin"}]},
+    {"source": "/index.html", "headers": [{"key": "Cache-Control", "value": "no-cache"}]},
+    {"source": "/flutter_bootstrap.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]},
+    {"source": "/main.dart.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
+  ]
+}

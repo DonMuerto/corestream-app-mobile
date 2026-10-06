@@ -1,0 +1,2 @@
+# Keep scripts and sources portable between Windows and Linux builds.
+* text=auto eol=lf

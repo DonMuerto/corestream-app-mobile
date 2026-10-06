@@ -1,51 +1,80 @@
-# Miscellaneous
-*.class
+# =========================================================================
+# CoreStream Monorepo .gitignore
+# =========================================================================
+
+# -------------------------------------------------------------------------
+# Python / Backend
+# -------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Entornos virtuales
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# pytest / testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type checkers y linters
+.mypy_cache/
+.ruff_cache/
+
+# DB
+*.sqlite3
+
+# -------------------------------------------------------------------------
+# Node / Frontend (Vue + Vite)
+# -------------------------------------------------------------------------
+node_modules/
+dist/
+build/
+.vite/
+/coverage
+frontend/cypress/screenshots/
+frontend/cypress/videos/
+frontend/cypress/downloads/
+
+# Logs
 *.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
+# Variables de entorno frontend
+.env.local
+.env.*.local
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Local credentials and generated Flutter files
+.vercel/
+.agents/
+skills-lock.json
 .dart_tool/
 .flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
-.vercel/
 .vercel_flutter/
-.env*.local
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
-# Widget Preview related
 .widget_preview/
+
+# -------------------------------------------------------------------------
+# OS / Editors
+# -------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# VS Code / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
