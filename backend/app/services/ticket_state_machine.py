@@ -52,7 +52,9 @@ class TicketStateMachine:
         "IN_PROGRESS": ["BLOCKED_QUESTION", "REDIRECTED", "COMPLETED"],
         "BLOCKED": ["IN_PROGRESS"],
         "BLOCKED_QUESTION": ["IN_PROGRESS"],
-        "REDIRECTED": ["TODO"],
+        # Legacy imported tickets kept REDIRECTED; their recipient may start
+        # them directly. New redirections already return the recipient to TODO.
+        "REDIRECTED": ["TODO", "IN_PROGRESS"],
         "COMPLETED": [],
         # Workflow de soporte
         "REPORTED": ["INVESTIGATING"],

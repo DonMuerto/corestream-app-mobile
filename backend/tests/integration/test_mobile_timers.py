@@ -24,6 +24,10 @@ async def test_question_and_resolution_preserve_separate_timers(client, dev_head
     detail = (await client.get(f'/api/mobile/tickets/{ticket_id}/detail', headers=dev_headers)).json()
     assert detail['timer']['blocked_started_at'] is not None
     assert detail['timer']['is_running'] is False
+    assert detail['permissions']['can_resolve_question'] is False
+    denied = await client.post(f'/api/tickets/{ticket_id}/resolve-question', headers=dev_headers,
+                               json={'resolution': 'Intento del desarrollador bloqueado'})
+    assert denied.status_code == 403
     async with get_session_maker()() as db:
         saved = await db.get(Ticket, UUID(ticket_id))
         assert saved.timer_started_at is None
@@ -78,3 +82,17 @@ async def test_reassign_preserves_time_and_audits_recipient(client, dev_headers,
             assert saved.blocked_time_seconds == 15
         events = (await db.execute(select(TicketEvent).where(TicketEvent.ticket_id == saved.id))).scalars().all()
         assert any(e.detail.get('from_user_id') == dev_id and e.detail.get('to_user_id') == dev2_id for e in events)
+
+
+async def test_legacy_redirected_ticket_can_be_started_only_by_recipient(client, dev_headers,
+                                                                       dev2_headers, ticket):
+    ticket_id = ticket['id']
+    async with get_session_maker()() as db:
+        saved = await db.get(Ticket, UUID(ticket_id))
+        saved.status = TicketStatus.REDIRECTED
+        await db.commit()
+    denied = await client.post(f'/api/tickets/{ticket_id}/start', headers=dev2_headers)
+    assert denied.status_code == 403
+    res = await client.post(f'/api/tickets/{ticket_id}/start', headers=dev_headers)
+    assert res.status_code == 200
+    assert res.json()['status'] == 'IN_PROGRESS'

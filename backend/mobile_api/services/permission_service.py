@@ -6,10 +6,10 @@ testear y de mantener alineada con las reglas de la máquina de estados
 (app/services/ticket_state_machine.py) y del middleware de roles.
 
 Reglas (idénticas a las que validan los endpoints de acción):
-    - ADMIN y GROUP_LEADER asignan/reasignan cualquier ticket no completado.
+    - ADMIN y TEAM_LEADER asignan/reasignan cualquier ticket no completado.
     - Las acciones de trabajo (start, complete, question, redirect) son solo
       del usuario asignado, según el estado actual del ticket.
-    - resolve_question la ejecuta el asignado o un líder (responde la duda).
+    - resolve_question la ejecuta ADMIN o TEAM_LEADER, no el developer bloqueado.
     - Las subtareas las edita el asignado o un líder mientras no esté DONE.
     - Editar metadatos del ticket es de líderes; eliminar, solo de ADMIN.
 """
@@ -27,7 +27,7 @@ def compute_ticket_permissions(
     Calcula las acciones disponibles para un usuario sobre un ticket.
 
     Args:
-        role: Rol del usuario (ADMIN | GROUP_LEADER | DEVELOPER).
+        role: Rol del usuario (ADMIN | TEAM_LEADER | DEVELOPER).
         user_id: Id del usuario actual (str, comparado como str).
         ticket_status: Estado actual del ticket (TicketStatus).
         ticket_assignee_id: Id del asignado actual o None.
@@ -46,7 +46,7 @@ def compute_ticket_permissions(
         "can_start": can_work and (is_mine or ticket_assignee_id is None) and status in ("TODO", "REDIRECTED"),
         "can_complete": can_work and is_mine and status == "IN_PROGRESS",
         "can_question": can_work and is_mine and status == "IN_PROGRESS",
-        "can_resolve_question": (is_mine or is_lead) and status == "BLOCKED_QUESTION",
+        "can_resolve_question": is_lead and status in ("BLOCKED", "BLOCKED_QUESTION"),
         "can_redirect": can_work and is_mine and status == "IN_PROGRESS",
         "can_edit_subtasks": (is_mine or is_lead) and not finished,
         "can_edit": is_lead or is_mine,

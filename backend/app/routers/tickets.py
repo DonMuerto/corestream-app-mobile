@@ -888,10 +888,10 @@ async def start_ticket_work(
     )
 
     # Validar que el ticket está en estado TODO
-    if ticket.status != TicketStatus.TODO:
+    if ticket.status not in (TicketStatus.TODO, TicketStatus.REDIRECTED):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Solo se puede iniciar un ticket en estado TODO, actual: {ticket.status}"
+            detail=f"Solo se puede iniciar un ticket en TODO o REDIRECTED, actual: {ticket.status}"
         )
 
     try:

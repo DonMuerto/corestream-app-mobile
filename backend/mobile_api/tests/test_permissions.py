@@ -31,13 +31,16 @@ def test_developer_puede_comenzar_todo_y_redirigido():
         assert not p["can_complete"]
 
 
-def test_bloqueado_resuelve_asignado_o_lider():
+def test_bloqueado_solo_resuelve_admin_o_lider():
     asignado = compute_ticket_permissions("DEVELOPER", DEV, "BLOCKED_QUESTION", DEV)
     lider = compute_ticket_permissions("TEAM_LEADER", OTHER, "BLOCKED_QUESTION", DEV)
     ajeno = compute_ticket_permissions("DEVELOPER", OTHER, "BLOCKED_QUESTION", DEV)
-    assert asignado["can_resolve_question"]
+    assert not asignado["can_resolve_question"]
     assert lider["can_resolve_question"]
     assert not ajeno["can_resolve_question"]
+    for estado in ("BLOCKED", "BLOCKED_QUESTION"):
+        assert compute_ticket_permissions("ADMIN", OTHER, estado, DEV)["can_resolve_question"]
+        assert compute_ticket_permissions("TEAM_LEADER", OTHER, estado, DEV)["can_resolve_question"]
 
 
 def test_lider_asigna_pero_no_trabaja_tickets_ajenos():
