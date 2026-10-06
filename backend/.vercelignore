@@ -1,0 +1,9 @@
+.env*
+!.env.example
+.agents/
+skills-lock.json
+tests/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+storage/

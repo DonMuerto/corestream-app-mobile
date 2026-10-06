@@ -1,3 +1,36 @@
+[project]
+name = "corestream-app-api"
+version = "1.0.0"
+requires-python = ">=3.11,<3.13"
+# Mismos pins que requirements.txt; Vercel usa uv cuando existe pyproject.toml.
+dependencies = [
+    "fastapi==0.141.1",
+    "uvicorn[standard]==0.52.1",
+    "pydantic[email]==2.13.4",
+    "pydantic-settings==2.14.2",
+    "email-validator==2.3.0",
+    "sqlalchemy==2.0.51",
+    "asyncpg==0.31.0",
+    "alembic==1.13.1",
+    "psycopg2-binary==2.9.9",
+    "redis==5.3.1",
+    "arq==0.28.0",
+    "passlib[bcrypt]==1.7.4",
+    "python-jose[cryptography]==3.5.0",
+    "python-multipart==0.0.32",
+    "bcrypt==4.0.1",
+    "httpx==0.28.1",
+    "pypdf2==3.0.1",
+    "python-docx==1.2.0",
+    "prometheus-fastapi-instrumentator==8.1.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.vercel]
+entrypoint = "app.main:app"
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100

@@ -10,14 +10,18 @@
 # datos sin cobertura real. Con la factoría perezosa, importar la app es
 # gratis y los tests pueden inyectar su propia URL.
 
+import ssl
 from typing import AsyncGenerator, Optional
+from uuid import uuid4
 
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from app.config import get_settings
 
@@ -41,7 +45,30 @@ def _build_engine(database_url: str) -> AsyncEngine:
         "future": True,
     }
 
-    if not database_url.startswith("sqlite"):
+    url = make_url(database_url)
+    if url.drivername == "postgresql+asyncpg":
+        query = dict(url.query)
+        ssl_mode = query.pop("sslmode", None)
+        # channel_binding es una opción de libpq, no de asyncpg. La conexión
+        # TLS de abajo sí verifica la CA y el nombre del servidor remoto.
+        query.pop("channel_binding", None)
+        connect_args: dict = {"timeout": settings.DB_CONNECT_TIMEOUT}
+        if ssl_mode in ("require", "verify-ca", "verify-full"):
+            connect_args["ssl"] = ssl.create_default_context()
+        elif ssl_mode is not None:
+            connect_args["ssl"] = ssl_mode
+        if settings.DB_NULL_POOL:
+            connect_args.update(
+                statement_cache_size=0,
+                prepared_statement_cache_size=0,
+                prepared_statement_name_func=lambda: f"__corestream_{uuid4().hex}__",
+            )
+        kwargs["connect_args"] = connect_args
+        url = url.set(query=query)
+
+    if not database_url.startswith("sqlite") and settings.DB_NULL_POOL:
+        kwargs["poolclass"] = NullPool
+    elif not database_url.startswith("sqlite"):
         kwargs.update(
             pool_size=settings.DB_POOL_SIZE,
             max_overflow=settings.DB_MAX_OVERFLOW,
@@ -53,7 +80,7 @@ def _build_engine(database_url: str) -> AsyncEngine:
             pool_recycle=settings.DB_POOL_RECYCLE,
         )
 
-    return create_async_engine(database_url, **kwargs)
+    return create_async_engine(url, **kwargs)
 
 
 def get_engine() -> AsyncEngine:

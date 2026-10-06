@@ -166,10 +166,25 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def require_persistent_file_storage(request, call_next):
+    if not settings.FILE_STORAGE_ENABLED and (
+        request.url.path.startswith("/api/uploads")
+        or request.url.path.startswith("/api/documents")
+    ):
+        return JSONResponse(status_code=503, content={
+            "detail": "Almacenamiento persistente de archivos aún no configurado en este entorno."
+        })
+    return await call_next(request)
+
 # Métricas Prometheus en /metrics (plan fase 8). No debe quedar expuesto por
 # el Nginx público — solo accesible dentro de la red interna/VM (ver
 # docs/DEPLOYMENT.md, que no debe incluir una location para /metrics).
-Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+instrumentator = Instrumentator().instrument(app)
+# En Vercel no hay un Nginx interno que proteja /metrics.
+if settings.ENVIRONMENT != "production":
+    instrumentator.expose(app, endpoint="/metrics", include_in_schema=False)
 
 
 # Incluir routers con prefijos de API
@@ -229,16 +244,18 @@ async def health_check() -> JSONResponse:
         async with get_session_maker()() as db:
             await db.execute(text("SELECT 1"))
         checks["database"] = "ok"
-    except Exception as exc:
-        checks["database"] = f"error: {exc}"
+    except Exception:
+        logger.exception("Readiness: PostgreSQL no disponible")
+        checks["database"] = "unavailable"
         ok = False
 
     try:
         redis_client = await get_redis()
         await redis_client.ping()
         checks["redis"] = "ok"
-    except Exception as exc:
-        checks["redis"] = f"error: {exc}"
+    except Exception:
+        logger.exception("Readiness: Redis no disponible")
+        checks["redis"] = "unavailable"
         ok = False
 
     body = {

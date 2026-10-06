@@ -44,13 +44,19 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def fix_database_url(cls, v: str) -> str:
-        if isinstance(v, str) and v.startswith("postgresql://"):
-            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if isinstance(v, str):
+            for prefix in ("postgresql://", "postgres://"):
+                if v.startswith(prefix):
+                    return v.replace(prefix, "postgresql+asyncpg://", 1)
         return v
 
     # Opciones del pool de conexiones (solo aplican a PostgreSQL)
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 10
+    # En funciones serverless el pool remoto (Neon) administra conexiones.
+    # False conserva el comportamiento del entorno Docker oficial.
+    DB_NULL_POOL: bool = False
+    DB_CONNECT_TIMEOUT: int = 15
 
     # Recicla conexiones más viejas que este umbral (segundos). Evita que un
     # proxy o el propio PostgreSQL cierre por su cuenta una conexión que el
@@ -137,6 +143,9 @@ class Settings(BaseSettings):
     # services/file_service.py (subcarpeta "uploads") cuelgan de esta misma
     # raíz (plan fase 7.2) — en Docker debe ser un volumen persistente.
     UPLOAD_DIR: str = "/app/storage"
+    # Las funciones de Vercel no tienen un volumen persistente. Desactivar
+    # hasta integrar almacenamiento de objetos; nunca fingir que /tmp persiste.
+    FILE_STORAGE_ENABLED: bool = True
     
     # Configuración de Pydantic Settings
     class Config:
