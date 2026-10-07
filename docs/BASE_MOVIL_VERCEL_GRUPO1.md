@@ -125,7 +125,7 @@ no completó el arranque. Los tres casos puros del resolvedor del socket sí
 pasaron con `dart run tool/check_api_endpoint.dart`; no reemplazan la suite
 completa ni las pruebas en Android.
 
-Posteriormente, diez tests del endpoint de socket, historial y contadores se
+Posteriormente, once tests del endpoint de socket, historial y contadores se
 ejecutaron y pasaron en Linux durante el build Vercel. El script de build los
 ejecuta antes de compilar la web. Esto no cambia el bloqueo local de Windows
 ni acredita una suite completa de widgets o un APK. Ver el traslado y la

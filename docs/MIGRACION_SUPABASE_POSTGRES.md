@@ -136,7 +136,7 @@ Verificado: reconciliación de las 118 filas en Neon; login y dashboard de las
 cinco cuentas por HTTPS; creación y asignación de ticket desde Flutter con
 confirmación SQL. La regresión final pasó **105 tests del backend**, incluyendo
 mapeo/idempotencia, API móvil, permisos, ciclo de vida y timers en PostgreSQL
-local descartable. **10 tests Flutter** del endpoint WebSocket, historial y
+local descartable. **11 tests Flutter** del endpoint WebSocket, historial y
 contadores pasaron en Linux durante el build de Vercel. No representan la suite
 completa de widgets ni pruebas en Android. El bloqueo de Control de aplicaciones
 de Windows sigue intacto; no se deshabilitó.
@@ -169,8 +169,8 @@ Scope `alvaortiz-1858`, entorno Production, sin tocar la demo Supabase:
 
 | Componente | Proyecto | Build activado | Commit de código |
 | --- | --- | --- | --- |
-| Flutter | `corestream-app-base-grupo1` | `dpl_GNHWwz9Ce1Sfn6wPopLkhfigQG8A` | `64f8007` |
-| FastAPI | `corestream-app-api-grupo1` | `dpl_NHR3crP2oGSP6H2jtwEVwKaDJwoz` | `eeb5202` |
+| Flutter | `corestream-app-base-grupo1` | `dpl_HwnJMcmbnBSscQKtEPug1EyJfCgX` | `6679fde` |
+| FastAPI | `corestream-app-api-grupo1` | `dpl_8es52Y8eD7xobqnvFYwhYJgqXKUb` | `6679fde` |
 
 Ambos builds llegaron a READY y se promovieron tras verificar sus artefactos
 y la salud PostgreSQL/Redis. La API sigue expuesta bajo `/api` del mismo HTTPS
@@ -180,6 +180,29 @@ La consulta acotada de errores del build API final no devolvió entradas.
 
 `main` se mantuvo en `1311a8b`; `mejoras/pantalla-login`, en `167c0bf`.
 Todos los cambios de esta entrega están en la misma rama `desarrollo`.
+
+## Prueba real desde la web
+
+Se creó exclusivamente el ticket **Prueba Flutter UI migración PostgreSQL
+2026-10-06** en `Verificación técnica Grupo 1` → `Validación de persistencia`.
+No se usaron los tickets importados como material de pruebas.
+
+1. Ana creó el ticket y lo asignó a Diego.
+2. Diego inició trabajo, planteó una pregunta y Luis la resolvió.
+3. Diego planteó una segunda pregunta; el nuevo contador de bloqueo avanzó
+   en la pantalla y mostró el texto más reciente.
+4. Luis reasignó el ticket bloqueado a Sofía: volvió a TODO, preservando
+   trabajo y bloqueo. Sofía inició trabajo y lo redirigió a Diego con motivo.
+5. Diego vio la notificación persistida, abrió el ticket desde ella, inició
+   trabajo y lo completó usando el PR existente número 3 del repositorio
+   (solo como entrada real para verificar el campo, no como PR nuevo de esta tarea).
+
+Comprobación SQL/API final: **COMPLETED, 1077 segundos de trabajo, 220 de
+bloqueo, 13 eventos y Diego como responsable**. El PR también coincide con
+la respuesta del BFF. Los tiempos son de esta sesión de pruebas, no horas
+de desarrollo reales. El ticket de verificación se conserva; no fue borrado.
+Los cinco logins y dashboards siguen funcionando y las 118 filas originales
+se reconciliaron nuevamente sin pérdida.
 
 Esto es una base persistente más cercana a un MVP, no una certificación de
 producto completo. Los datos importados siguen siendo de demostración. FCM,
