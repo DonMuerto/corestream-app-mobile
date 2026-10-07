@@ -613,7 +613,7 @@ class DemoRepository extends CoreStreamRepository {
     required String title,
     required TicketPriority priority,
     String? assigneeId,
-    String description = '',
+    String? description,
   }) async {
     final me = _current!;
     final t = Ticket(
