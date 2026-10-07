@@ -70,7 +70,12 @@ Color priorityColor(BuildContext context, TicketPriority p) {
 // ------------------------------------------------------------------- chips
 
 class CsChip extends StatelessWidget {
-  const CsChip({super.key, required this.label, required this.color, this.soft, this.dot = true});
+  const CsChip(
+      {super.key,
+      required this.label,
+      required this.color,
+      this.soft,
+      this.dot = true});
 
   final String label;
   final Color color;
@@ -89,11 +94,19 @@ class CsChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (dot) ...[
-            Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+            Container(
+                width: 6,
+                height: 6,
+                decoration:
+                    BoxDecoration(color: color, shape: BoxShape.circle)),
             const SizedBox(width: 5),
           ],
           Text(label,
-              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
+              style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3)),
         ],
       ),
     );
@@ -122,7 +135,9 @@ class IncidentStatusChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
-    return CsChip(label: s('is_${status.wire}'), color: incidentStatusColor(context, status));
+    return CsChip(
+        label: s('is_${status.wire}'),
+        color: incidentStatusColor(context, status));
   }
 }
 
@@ -133,7 +148,10 @@ class SeverityChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
-    return CsChip(label: s('sev_${severity.wire}'), color: severityColor(context, severity), dot: false);
+    return CsChip(
+        label: s('sev_${severity.wire}'),
+        color: severityColor(context, severity),
+        dot: false);
   }
 }
 
@@ -146,7 +164,8 @@ class PriorityDot extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(color: priorityColor(context, priority), shape: BoxShape.circle),
+        decoration: BoxDecoration(
+            color: priorityColor(context, priority), shape: BoxShape.circle),
       );
 }
 
@@ -240,13 +259,17 @@ class SectionLabel extends StatelessWidget {
         child: Text(
           text.toUpperCase(),
           style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: cs(context).faint),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+              color: cs(context).faint),
         ),
       );
 }
 
 class StatTile extends StatelessWidget {
-  const StatTile({super.key, required this.value, required this.label, this.color});
+  const StatTile(
+      {super.key, required this.value, required this.label, this.color});
 
   final String value;
   final String label;
@@ -261,7 +284,10 @@ class StatTile extends StatelessWidget {
         children: [
           Text(value,
               style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.w700, color: color ?? c.ink, height: 1.1)),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: color ?? c.ink,
+                  height: 1.1)),
           const SizedBox(height: 2),
           Text(label, style: TextStyle(fontSize: 12, color: c.mut)),
         ],
@@ -295,19 +321,28 @@ class EmptyState extends StatelessWidget {
 
 /// Envuelve un AsyncValue con carga/errores coherentes.
 class AsyncView<T> extends ConsumerWidget {
-  const AsyncView({super.key, required this.value, required this.builder});
+  const AsyncView(
+      {super.key, required this.value, required this.builder, this.onRetry});
 
   final AsyncValue<T> value;
   final Widget Function(T data) builder;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
     return value.when(
+      skipLoadingOnReload: true,
       data: builder,
       loading: () => const Center(
-          child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
-      error: (e, _) => EmptyState(s('error_generic'), icon: Icons.cloud_off_outlined),
+          child: Padding(
+              padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
+      error: (e, _) =>
+          Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        EmptyState(s('error_generic'), icon: Icons.cloud_off_outlined),
+        if (onRetry != null)
+          OutlinedButton(onPressed: onRetry, child: Text(s('retry'))),
+      ]),
     );
   }
 }
@@ -315,7 +350,8 @@ class AsyncView<T> extends ConsumerWidget {
 // -------------------------------------------------------------- fila ticket
 
 class TicketRow extends ConsumerWidget {
-  const TicketRow(this.ticket, {super.key, this.projectName, required this.onTap});
+  const TicketRow(this.ticket,
+      {super.key, this.projectName, required this.onTap});
 
   final Ticket ticket;
   final String? projectName;
@@ -343,7 +379,10 @@ class TicketRow extends ConsumerWidget {
                 Text(ticket.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, height: 1.3)),
+                    style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3)),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 7,
@@ -352,9 +391,13 @@ class TicketRow extends ConsumerWidget {
                   children: [
                     if (ticket.number > 0)
                       Text('T-${ticket.number}',
-                          style: TextStyle(fontSize: 11, color: c.faint, fontFamily: 'monospace')),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: c.faint,
+                              fontFamily: 'monospace')),
                     if (projectName != null)
-                      Text(projectName!, style: TextStyle(fontSize: 11.5, color: c.mut)),
+                      Text(projectName!,
+                          style: TextStyle(fontSize: 11.5, color: c.mut)),
                     StatusChip(ticket.status),
                     if (ticket.dueDate != null)
                       Text(
@@ -362,7 +405,9 @@ class TicketRow extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 11.5,
                           color: ticket.isOverdue ? c.red : c.mut,
-                          fontWeight: ticket.isOverdue ? FontWeight.w700 : FontWeight.w400,
+                          fontWeight: ticket.isOverdue
+                              ? FontWeight.w700
+                              : FontWeight.w400,
                         ),
                       ),
                     if (ticket.subtasks.isNotEmpty)
@@ -420,7 +465,9 @@ void showPushToast(BuildContext context, WidgetRef ref, AppNotification n,
               border: Border.all(color: c.line),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.35), blurRadius: 24, offset: const Offset(0, 10)),
+                    color: Colors.black.withOpacity(0.35),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10)),
               ],
             ),
             child: Row(
@@ -441,11 +488,14 @@ void showPushToast(BuildContext context, WidgetRef ref, AppNotification n,
                       const SizedBox(height: 2),
                       Text(s('n_${_kindWire(n.kind)}'),
                           style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w700, color: c.ink)),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: c.ink)),
                       Text(n.message,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: c.mut, height: 1.35)),
+                          style: TextStyle(
+                              fontSize: 12, color: c.mut, height: 1.35)),
                     ],
                   ),
                 ),
@@ -488,8 +538,9 @@ class NotificationIcon extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration:
-          BoxDecoration(color: color.withOpacity(0.14), borderRadius: BorderRadius.circular(11)),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.14),
+          borderRadius: BorderRadius.circular(11)),
       child: Icon(icon, size: size * 0.5, color: color),
     );
   }
@@ -539,10 +590,12 @@ class SheetTitle extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        Text(title,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
         if (subtitle != null) ...[
           const SizedBox(height: 4),
-          Text(subtitle!, style: TextStyle(fontSize: 13, color: c.mut, height: 1.45)),
+          Text(subtitle!,
+              style: TextStyle(fontSize: 13, color: c.mut, height: 1.45)),
         ],
         const SizedBox(height: 14),
       ],

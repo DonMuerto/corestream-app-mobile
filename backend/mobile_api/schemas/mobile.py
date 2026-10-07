@@ -78,6 +78,7 @@ class AttentionItem(BaseModel):
     severity: Optional[str] = None
     due_date: Optional[datetime] = None
     assignee_name: Optional[str] = None
+    assignee: Optional[UserBrief] = None
 
 
 class MobileDashboardResponse(BaseModel):
@@ -167,6 +168,10 @@ class TicketPermissions(BaseModel):
     can_edit_subtasks: bool = False
     can_edit: bool = False
     can_delete: bool = False
+    can_archive: bool = False
+    can_restore: bool = False
+    can_pause: bool = False
+    can_resume_timer: bool = False
 
 
 class TicketFull(BaseModel):
@@ -185,6 +190,7 @@ class TicketFull(BaseModel):
     order_index: int = 0
     created_at: datetime
     updated_at: datetime
+    archived_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

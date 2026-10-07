@@ -209,6 +209,8 @@ class TimerService:
                     start_time = datetime.fromisoformat(ts)
 
             if start_time is not None:
+                if start_time.tzinfo is None:
+                    start_time = start_time.replace(tzinfo=timezone.utc)
                 elapsed_seconds = int((now - start_time).total_seconds())
                 if elapsed_seconds > 0:
                     db_ticket.time_spent_seconds += elapsed_seconds

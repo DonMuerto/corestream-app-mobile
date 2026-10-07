@@ -22,6 +22,8 @@ def compute_ticket_permissions(
     user_id: str,
     ticket_status: str,
     ticket_assignee_id: str | None,
+    archived: bool = False,
+    timer_running: bool = False,
 ) -> dict[str, bool]:
     """
     Calcula las acciones disponibles para un usuario sobre un ticket.
@@ -40,6 +42,12 @@ def compute_ticket_permissions(
     status = str(ticket_status)
     can_work = role != "ADMIN"
     finished = status in ("COMPLETED", "RESOLVED")
+    if archived:
+        return {key: key == "can_restore" and role == "ADMIN" for key in (
+            "can_assign", "can_start", "can_complete", "can_question",
+            "can_resolve_question", "can_redirect", "can_edit_subtasks", "can_edit",
+            "can_delete", "can_archive", "can_restore", "can_pause", "can_resume_timer",
+        )}
 
     return {
         "can_assign": is_lead and not finished,
@@ -51,4 +59,8 @@ def compute_ticket_permissions(
         "can_edit_subtasks": (is_mine or is_lead) and not finished,
         "can_edit": is_lead or is_mine,
         "can_delete": role == "ADMIN",
+        "can_archive": role == "ADMIN",
+        "can_restore": False,
+        "can_pause": can_work and is_mine and status == "IN_PROGRESS" and timer_running,
+        "can_resume_timer": can_work and is_mine and status == "IN_PROGRESS" and not timer_running,
     }

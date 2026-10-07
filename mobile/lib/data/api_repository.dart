@@ -228,6 +228,11 @@ class ApiRepository implements CoreStreamRepository {
     final stats = (j['stats'] as Map).cast<String, num>();
 
     if (role != UserRole.developer) {
+      for (final a in (j['attention'] ?? []) as List) {
+        if (a['assignee'] is Map) {
+          _parseUser((a['assignee'] as Map).cast<String, dynamic>());
+        }
+      }
       return Dashboard(
         role: role,
         stats: {
@@ -262,6 +267,7 @@ class ApiRepository implements CoreStreamRepository {
                   epicId: '',
                   title: a['title'] as String,
                   description: '',
+                  assigneeId: a['assignee']?['id']?.toString(),
                   status:
                       TicketStatusWire.parse((a['status'] ?? 'TODO') as String),
                   dueDate: a['due_date'] != null
@@ -284,6 +290,7 @@ class ApiRepository implements CoreStreamRepository {
                   status: IncidentStatusWire.parse(
                       (a['status'] ?? 'OPEN') as String),
                   reporterId: '',
+                  assigneeId: a['assignee']?['id']?.toString(),
                   createdAt: DateTime.now(),
                 ),
                 (a['app_name'] ?? '') as String,
@@ -425,8 +432,10 @@ class ApiRepository implements CoreStreamRepository {
       runningSince: (timer['is_running'] ?? false) as bool
           ? DateTime.tryParse((timer['started_at'] ?? '') as String)
           : null,
-      blockedSince: DateTime.tryParse((timer['blocked_started_at'] ?? '') as String),
+      blockedSince:
+          DateTime.tryParse((timer['blocked_started_at'] ?? '') as String),
       prLink: tj['pr_link'] as String?,
+      archivedAt: DateTime.tryParse((tj['archived_at'] ?? '') as String),
       subtasks: [
         for (final s in (j['subtasks'] ?? []) as List)
           Subtask(
@@ -470,6 +479,10 @@ class ApiRepository implements CoreStreamRepository {
         canEditSubtasks: (perms['can_edit_subtasks'] ?? false) as bool,
         canEdit: (perms['can_edit'] ?? false) as bool,
         canDelete: (perms['can_delete'] ?? false) as bool,
+        canArchive: (perms['can_archive'] ?? false) as bool,
+        canRestore: (perms['can_restore'] ?? false) as bool,
+        canPause: (perms['can_pause'] ?? false) as bool,
+        canResumeTimer: (perms['can_resume_timer'] ?? false) as bool,
       ),
     );
   }
@@ -612,16 +625,56 @@ class ApiRepository implements CoreStreamRepository {
           data: {'is_completed': done}));
 
   @override
+  Future<void> createSubtask(String ticketId, String title) => _act(
+      () => _dio.post('/tickets/$ticketId/subtasks/', data: {'title': title}));
+
+  @override
+  Future<void> moveTicket(String ticketId, String epicId) => _act(() =>
+      _dio.patch('/tickets/$ticketId/move', data: {'new_epic_id': epicId}));
+
+  @override
+  Future<void> archiveTicket(String ticketId) =>
+      _act(() => _dio.post('/tickets/$ticketId/archive'));
+
+  @override
+  Future<void> restoreTicket(String ticketId) =>
+      _act(() => _dio.post('/tickets/$ticketId/restore'));
+
+  @override
+  Future<void> pauseTicket(String ticketId) =>
+      _act(() => _dio.post('/tickets/$ticketId/timer/pause'));
+
+  @override
+  Future<void> resumeTicketTimer(String ticketId) =>
+      _act(() => _dio.post('/tickets/$ticketId/timer/resume'));
+
+  @override
+  Future<List<Ticket>> fetchArchivedTickets(String projectId) async {
+    final r = await _dio.get('/tickets/', queryParameters: {
+      'application_id': projectId,
+      'archived': true,
+      'limit': 500
+    });
+    return [
+      for (final row in r.data as List)
+        _parseTicketSummary(
+            (row as Map).cast<String, dynamic>(), row['epic_id'].toString())
+    ];
+  }
+
+  @override
   Future<void> createTicket({
     required String epicId,
     required String title,
     required TicketPriority priority,
     String? assigneeId,
+    String? description,
   }) =>
       _act(() => _dio.post('/tickets/', data: {
             'title': title,
             'epic_id': epicId,
             'priority': priority.wire,
+            if (description != null) 'description': description,
             if (assigneeId != null) 'assignee_id': assigneeId,
           }));
 

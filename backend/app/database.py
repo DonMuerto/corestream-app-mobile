@@ -14,6 +14,7 @@ import ssl
 from typing import AsyncGenerator, Optional
 from uuid import uuid4
 
+from sqlalchemy import event
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -21,6 +22,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.orm import Session, with_loader_criteria
 from sqlalchemy.pool import NullPool
 
 from app.config import get_settings
@@ -28,6 +30,20 @@ from app.config import get_settings
 # Instancias perezosas. No se tocan al importar el módulo.
 _engine: Optional[AsyncEngine] = None
 _session_maker: Optional[async_sessionmaker[AsyncSession]] = None
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _exclude_archived_tickets(execute_state):
+    """Hide archived work in lists, analytics and relationships by default.
+
+    Archive/restore and read-only detail explicitly opt in. No rows are erased.
+    """
+    if execute_state.is_select and not execute_state.execution_options.get("include_archived", False):
+        from app.models.ticket import Ticket
+
+        execute_state.statement = execute_state.statement.options(
+            with_loader_criteria(Ticket, lambda cls: cls.archived_at.is_(None), include_aliases=True)
+        )
 
 
 def _build_engine(database_url: str) -> AsyncEngine:

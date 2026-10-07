@@ -149,18 +149,33 @@ abstract class CoreStreamRepository {
   Project? projectOfTicket(Ticket t);
 
   // --- acciones de tickets ---
-  Future<void> assignTicket(String ticketId, String assigneeId, {String? comment});
+  Future<void> assignTicket(String ticketId, String assigneeId,
+      {String? comment});
   Future<void> startTicket(String ticketId);
   Future<void> completeTicket(String ticketId, String prLink);
   Future<void> raiseQuestion(String ticketId, String question);
   Future<void> resolveQuestion(String ticketId, String resolution);
   Future<void> redirectTicket(String ticketId, String toUserId, String reason);
   Future<void> toggleSubtask(String ticketId, String subtaskId, bool done);
+  Future<void> createSubtask(String ticketId, String title) async =>
+      throw UnsupportedError('API only');
+  Future<void> moveTicket(String ticketId, String epicId) async =>
+      throw UnsupportedError('API only');
+  Future<void> archiveTicket(String ticketId) async =>
+      throw UnsupportedError('API only');
+  Future<void> restoreTicket(String ticketId) async =>
+      throw UnsupportedError('API only');
+  Future<List<Ticket>> fetchArchivedTickets(String projectId) async => [];
+  Future<void> pauseTicket(String ticketId) async =>
+      throw UnsupportedError('API only');
+  Future<void> resumeTicketTimer(String ticketId) async =>
+      throw UnsupportedError('API only');
   Future<void> createTicket({
     required String epicId,
     required String title,
     required TicketPriority priority,
     String? assigneeId,
+    String? description,
   });
 
   // --- acciones de incidencias ---

@@ -16,6 +16,21 @@ class S {
   static const supported = ['es', 'en'];
 
   static const Map<String, String> _es = {
+    'retry': 'Reintentar',
+    'new_subtask': 'Añadir subtarea',
+    'move_ticket': 'Mover a otra épica',
+    'archive': 'Archivar ticket',
+    'archived': 'Archivado',
+    'archives': 'Tickets archivados',
+    'restore': 'Restaurar ticket',
+    'archive_info':
+        'Se conservarán el ticket, sus subtareas, tiempos e historial. Puedes restaurarlo desde el archivo del proyecto.',
+    'pause_work': 'Pausar trabajo',
+    'resume_work': 'Reanudar trabajo',
+    'work_paused': 'Trabajo pausado',
+    'empty_description': 'Sin descripción',
+    'action_error':
+        'No se pudo guardar el cambio. Reintenta; si persiste, revisa tus permisos.',
     'app_name': 'CoreStream',
     'login_sub':
         'Selecciona un usuario demo para entrar. La app adapta la navegación y los permisos según el rol, igual que la versión web.',
@@ -81,7 +96,8 @@ class S {
     'activity': 'Registro de actividad',
     'assign': 'Asignar',
     'reassign': 'Reasignar',
-    'assign_sub': 'Elige a quién asignar esta tarea. Recibirá una notificación al instante.',
+    'assign_sub':
+        'Elige a quién asignar esta tarea. Recibirá una notificación al instante.',
     'start': 'Comenzar a trabajar',
     'complete': 'Completar',
     'raise_q': 'Plantear pregunta',
@@ -90,12 +106,15 @@ class S {
     'complete_sub': 'Pega el enlace del Pull Request para cerrar el ticket.',
     'pr_link': 'Enlace de PR',
     'pr_invalid': 'Enlace inválido. Se admite GitHub, GitLab o Bitbucket.',
-    'q_sub': 'El ticket quedará bloqueado y se pausará el temporizador hasta que el líder responda.',
+    'q_sub':
+        'El ticket quedará bloqueado y se pausará el temporizador hasta que el líder responda.',
     'q_ph': '¿Qué impide avanzar? (mín. 10 caracteres)',
     'q_short': 'Escribe al menos 10 caracteres.',
-    'rd_sub': 'El ticket pasará a otra persona del equipo con una razón visible en el historial.',
+    'rd_sub':
+        'El ticket pasará a otra persona del equipo con una razón visible en el historial.',
     'rd_reason': 'Razón (mín. 10 caracteres)',
-    'rs_sub': 'Describe cómo se resolvió el bloqueo para reanudar el temporizador.',
+    'rs_sub':
+        'Describe cómo se resolvió el bloqueo para reanudar el temporizador.',
     'send': 'Enviar',
     'cancel': 'Cancelar',
     'confirm': 'Confirmar',
@@ -121,7 +140,8 @@ class S {
     'active_t': 'activos',
     'notifications': 'Notificaciones',
     'mark_all': 'Marcar todas como leídas',
-    'no_notifs': 'Sin notificaciones nuevas.\nCuando ocurra algo en tus proyectos, aparecerá aquí.',
+    'no_notifs':
+        'Sin notificaciones nuevas.\nCuando ocurra algo en tus proyectos, aparecerá aquí.',
     'no_tickets': 'No hay tickets con este filtro.',
     'settings': 'Ajustes',
     'theme': 'Tema',
@@ -146,12 +166,34 @@ class S {
     'error_generic': 'Algo salió mal. Desliza para reintentar.',
     'assigned_you': 'te asignó',
     'ev_created': 'creó el ticket',
+    'ev_archived': 'archivó el ticket',
+    'ev_restored': 'restauró el ticket',
+    'ev_timer_start': 'inició el reloj de trabajo',
+    'ev_timer_pause': 'pausó el reloj de trabajo',
+    'ev_moved': 'movió el ticket',
+    'ev_subtask_created': 'añadió una subtarea',
+    'ev_subtask_completed': 'actualizó una subtarea',
     'ev_assigned_to': 'asignó el ticket a',
     'ev_resolved': 'resolvió el bloqueo',
     'ev_redirected_to': 'redirigió el ticket a',
   };
 
   static const Map<String, String> _en = {
+    'retry': 'Retry',
+    'new_subtask': 'Add subtask',
+    'move_ticket': 'Move to another epic',
+    'archive': 'Archive ticket',
+    'archived': 'Archived',
+    'archives': 'Archived tickets',
+    'restore': 'Restore ticket',
+    'archive_info':
+        'The ticket, subtasks, time and history are retained. Restore it from the project archive.',
+    'pause_work': 'Pause work',
+    'resume_work': 'Resume work',
+    'work_paused': 'Work paused',
+    'empty_description': 'No description',
+    'action_error':
+        'Could not save the change. Retry; if it persists, check your permissions.',
     'app_name': 'CoreStream',
     'login_sub':
         'Pick a demo user to sign in. The app adapts navigation and permissions to the role, just like the web version.',
@@ -217,7 +259,8 @@ class S {
     'activity': 'Activity log',
     'assign': 'Assign',
     'reassign': 'Reassign',
-    'assign_sub': "Choose who takes this task. They'll get an instant notification.",
+    'assign_sub':
+        "Choose who takes this task. They'll get an instant notification.",
     'start': 'Start working',
     'complete': 'Complete',
     'raise_q': 'Raise question',
@@ -226,10 +269,12 @@ class S {
     'complete_sub': 'Paste the Pull Request link to close the ticket.',
     'pr_link': 'PR link',
     'pr_invalid': 'Invalid link. GitHub, GitLab or Bitbucket supported.',
-    'q_sub': 'The ticket will be blocked and the timer paused until the leader answers.',
+    'q_sub':
+        'The ticket will be blocked and the timer paused until the leader answers.',
     'q_ph': "What's blocking you? (min. 10 characters)",
     'q_short': 'Write at least 10 characters.',
-    'rd_sub': 'The ticket moves to another teammate with a reason visible in the history.',
+    'rd_sub':
+        'The ticket moves to another teammate with a reason visible in the history.',
     'rd_reason': 'Reason (min. 10 characters)',
     'rs_sub': 'Describe how the blocker was resolved to resume the timer.',
     'send': 'Send',
@@ -257,7 +302,8 @@ class S {
     'active_t': 'active',
     'notifications': 'Notifications',
     'mark_all': 'Mark all as read',
-    'no_notifs': 'No new notifications.\nWhen something happens in your projects, it shows up here.',
+    'no_notifs':
+        'No new notifications.\nWhen something happens in your projects, it shows up here.',
     'no_tickets': 'No tickets match this filter.',
     'settings': 'Settings',
     'theme': 'Theme',
@@ -282,6 +328,13 @@ class S {
     'error_generic': 'Something went wrong. Pull to retry.',
     'assigned_you': 'assigned you',
     'ev_created': 'created the ticket',
+    'ev_archived': 'archived the ticket',
+    'ev_restored': 'restored the ticket',
+    'ev_timer_start': 'started the work timer',
+    'ev_timer_pause': 'paused the work timer',
+    'ev_moved': 'moved the ticket',
+    'ev_subtask_created': 'added a subtask',
+    'ev_subtask_completed': 'updated a subtask',
     'ev_assigned_to': 'assigned the ticket to',
     'ev_resolved': 'resolved the blocker',
     'ev_redirected_to': 'redirected the ticket to',
@@ -292,15 +345,42 @@ class S {
 String relativeTime(S s, DateTime ts) {
   final d = DateTime.now().difference(ts);
   if (d.inSeconds < 90) return s('now');
-  if (d.inMinutes < 60) return s('min_ago').replaceFirst('{n}', '${d.inMinutes}');
+  if (d.inMinutes < 60)
+    return s('min_ago').replaceFirst('{n}', '${d.inMinutes}');
   if (d.inHours < 24) return s('h_ago').replaceFirst('{n}', '${d.inHours}');
   return s('d_ago').replaceFirst('{n}', '${d.inDays}');
 }
 
 /// Fecha corta localizada ("29 ago" / "29 Aug").
 String shortDate(String lang, DateTime d) {
-  const es = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  const en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const es = [
+    'ene',
+    'feb',
+    'mar',
+    'abr',
+    'may',
+    'jun',
+    'jul',
+    'ago',
+    'sep',
+    'oct',
+    'nov',
+    'dic'
+  ];
+  const en = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
+  ];
   final m = (lang == 'en' ? en : es)[d.month - 1];
   return '${d.day} $m';
 }

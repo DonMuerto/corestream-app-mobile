@@ -16,7 +16,10 @@ TicketEvent parseApiTicketEvent(Map<String, dynamic> row) {
       ? (row['payload'] as Map).cast<String, dynamic>()
       : <String, dynamic>{};
   final user = row['user'];
-  final wire = (row['event_type'] ?? '').toString();
+  final wire =
+      (payload['action'] == 'ARCHIVED' || payload['action'] == 'RESTORED')
+          ? payload['action'].toString()
+          : (row['event_type'] ?? '').toString();
   final from = _firstText([payload['from_status'], payload['previous_status']]);
   final to = _firstText([payload['to_status'], payload['new_status']]);
   return TicketEvent(
@@ -28,7 +31,8 @@ TicketEvent parseApiTicketEvent(Map<String, dynamic> row) {
       _ => wire,
     },
     userId: user is Map ? (user['id'] ?? '').toString() : '',
-    ts: DateTime.tryParse((row['created_at'] ?? '').toString()) ?? DateTime.now(),
+    ts: DateTime.tryParse((row['created_at'] ?? '').toString()) ??
+        DateTime.now(),
     text: _firstText([
       payload['comment'],
       payload['question_text'],

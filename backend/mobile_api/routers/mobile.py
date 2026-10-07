@@ -162,6 +162,7 @@ async def get_mobile_dashboard(
                 app_name=app_names.get(epic_app.get(t.epic_id), ""),
                 status=_val(t.status), due_date=t.due_date,
                 assignee_name=assignee.full_name if assignee else None,
+                assignee=UserBrief.model_validate(assignee) if assignee else None,
             ))
         for i in open_incidents:
             if _val(i.severity) not in ("P1", "P2"):
@@ -172,6 +173,7 @@ async def get_mobile_dashboard(
                 app_name=app_names.get(i.application_id, ""),
                 status=_val(i.status), severity=_val(i.severity),
                 assignee_name=assignee.full_name if assignee else None,
+                assignee=UserBrief.model_validate(assignee) if assignee else None,
             ))
 
         return MobileDashboardResponse(
@@ -305,7 +307,7 @@ async def get_ticket_detail(
     en una llamada (§5.3). El bloque permissions se calcula en servidor con
     las mismas reglas que validan los endpoints de acción.
     """
-    ticket = await db.get(Ticket, ticket_id)
+    ticket = await db.get(Ticket, ticket_id, execution_options={"include_archived": True})
     if ticket is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket no encontrado")
 
@@ -372,6 +374,8 @@ async def get_ticket_detail(
             user_id=current_user.id,
             ticket_status=_val(ticket.status),
             ticket_assignee_id=str(ticket.assignee_id) if ticket.assignee_id else None,
+            archived=ticket.archived_at is not None,
+            timer_running=is_running,
         )),
     )
 

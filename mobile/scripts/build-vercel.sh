@@ -8,5 +8,6 @@ if [ ! -x .vercel_flutter/bin/flutter ]; then
 fi
 .vercel_flutter/bin/flutter config --enable-web --no-analytics
 .vercel_flutter/bin/flutter pub get --enforce-lockfile
-.vercel_flutter/bin/flutter test test/api_endpoint_test.dart test/api_event_test.dart --reporter expanded
+.vercel_flutter/bin/flutter test --reporter expanded
+.vercel_flutter/bin/flutter analyze --no-fatal-infos --no-fatal-warnings
 .vercel_flutter/bin/flutter build web --release --dart-define=CS_API_URL=/api --dart-define=CS_WS_API_URL=https://corestream-app-api-grupo1.vercel.app/api

@@ -11,7 +11,7 @@ import '../core/config.dart';
 import '../models/models.dart';
 import 'repository.dart';
 
-class DemoRepository implements CoreStreamRepository {
+class DemoRepository extends CoreStreamRepository {
   DemoRepository() {
     _seed();
   }
@@ -613,6 +613,7 @@ class DemoRepository implements CoreStreamRepository {
     required String title,
     required TicketPriority priority,
     String? assigneeId,
+    String description = '',
   }) async {
     final me = _current!;
     final t = Ticket(

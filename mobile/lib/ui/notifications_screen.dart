@@ -12,8 +12,18 @@ import 'widgets.dart';
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
-  void _open(BuildContext context, WidgetRef ref, AppNotification n) {
-    ref.read(repositoryProvider).markNotificationRead(n.id);
+  Future<void> _open(
+      BuildContext context, WidgetRef ref, AppNotification n) async {
+    try {
+      if (!n.read)
+        await ref.read(repositoryProvider).markNotificationRead(n.id);
+    } catch (_) {
+      if (context.mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(ref.read(stringsProvider)('action_error'))));
+      return;
+    }
+    if (!context.mounted) return;
     if (n.ticketId != null) {
       Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => TicketDetailScreen(ticketId: n.ticketId!)));
@@ -37,61 +47,70 @@ class NotificationsScreen extends ConsumerWidget {
             TextButton(
               onPressed: () =>
                   ref.read(repositoryProvider).markAllNotificationsRead(),
-              child: Text(s('mark_all'), style: const TextStyle(fontSize: 12.5)),
+              child:
+                  Text(s('mark_all'), style: const TextStyle(fontSize: 12.5)),
             ),
           const SizedBox(width: 6),
         ],
       ),
       body: AsyncView<List<AppNotification>>(
         value: notifs,
+        onRetry: () => ref.invalidate(notificationsProvider),
         builder: (list) {
           if (list.isEmpty) {
             return EmptyState(s('no_notifs'), icon: Icons.notifications_none);
           }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            itemCount: list.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (_, i) {
-              final n = list[i];
-              return CsCard(
-                onTap: () => _open(context, ref, n),
-                padding: const EdgeInsets.all(13),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    NotificationIcon(kind: n.kind),
-                    const SizedBox(width: 11),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(_title(s, n.kind),
-                              style: const TextStyle(
-                                  fontSize: 13.5, fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 2),
-                          Text(n.message,
-                              style: TextStyle(
-                                  fontSize: 12.5, color: c.mut, height: 1.45)),
-                          const SizedBox(height: 4),
-                          Text(relativeTime(s, n.ts),
-                              style: TextStyle(fontSize: 11, color: c.faint)),
-                        ],
-                      ),
+          return RefreshIndicator(
+              onRefresh: () => ref.refresh(notificationsProvider.future),
+              child: ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                itemCount: list.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (_, i) {
+                  final n = list[i];
+                  return CsCard(
+                    onTap: () => _open(context, ref, n),
+                    padding: const EdgeInsets.all(13),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        NotificationIcon(kind: n.kind),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(_title(s, n.kind),
+                                  style: const TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 2),
+                              Text(n.message,
+                                  style: TextStyle(
+                                      fontSize: 12.5,
+                                      color: c.mut,
+                                      height: 1.45)),
+                              const SizedBox(height: 4),
+                              Text(relativeTime(s, n.ts),
+                                  style:
+                                      TextStyle(fontSize: 11, color: c.faint)),
+                            ],
+                          ),
+                        ),
+                        if (!n.read)
+                          Container(
+                            margin: const EdgeInsets.only(top: 5, left: 6),
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                                color: c.acc, shape: BoxShape.circle),
+                          ),
+                      ],
                     ),
-                    if (!n.read)
-                      Container(
-                        margin: const EdgeInsets.only(top: 5, left: 6),
-                        width: 8,
-                        height: 8,
-                        decoration:
-                            BoxDecoration(color: c.acc, shape: BoxShape.circle),
-                      ),
-                  ],
-                ),
-              );
-            },
-          );
+                  );
+                },
+              ));
         },
       ),
     );

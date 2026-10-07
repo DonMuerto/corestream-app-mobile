@@ -14,13 +14,32 @@ enum TicketStatus { todo, inProgress, blocked, redirected, done }
 
 enum TicketPriority { low, medium, high, urgent }
 
-enum IncidentStatus { open, inProgress, underReview, resolved, closed, reopened }
+enum IncidentStatus {
+  open,
+  inProgress,
+  underReview,
+  resolved,
+  closed,
+  reopened
+}
 
 enum IncidentSeverity { critical, high, medium, low }
 
-enum IncidentCategory { newFeature, criticalError, nonCriticalError, usabilityIssue }
+enum IncidentCategory {
+  newFeature,
+  criticalError,
+  nonCriticalError,
+  usabilityIssue
+}
 
-enum NotificationKind { assignment, question, redirect, completion, system, incident }
+enum NotificationKind {
+  assignment,
+  question,
+  redirect,
+  completion,
+  system,
+  incident
+}
 
 // Conversión wire-format (API) <-> enum. Los nombres del backend van en
 // MAYÚSCULAS_CON_GUION_BAJO.
@@ -111,10 +130,19 @@ extension IncidentCategoryWire on IncidentCategory {
 extension NotificationKindWire on NotificationKind {
   static NotificationKind parse(String v) => switch (v) {
         'ASSIGNMENT' || 'TICKET_ASSIGNED' => NotificationKind.assignment,
-        'QUESTION' || 'QUESTION_ASKED' || 'QUESTION_RAISED' => NotificationKind.question,
-        'REDIRECT' || 'REDIRECTED' || 'TICKET_REDIRECTED' => NotificationKind.redirect,
+        'QUESTION' ||
+        'QUESTION_ASKED' ||
+        'QUESTION_RAISED' =>
+          NotificationKind.question,
+        'REDIRECT' ||
+        'REDIRECTED' ||
+        'TICKET_REDIRECTED' =>
+          NotificationKind.redirect,
         'COMPLETION' || 'TICKET_COMPLETED' => NotificationKind.completion,
-        'INCIDENT' || 'INCIDENT_REPORTED' || 'INCIDENT_ASSIGNED' => NotificationKind.incident,
+        'INCIDENT' ||
+        'INCIDENT_REPORTED' ||
+        'INCIDENT_ASSIGNED' =>
+          NotificationKind.incident,
         _ => NotificationKind.system,
       };
 }
@@ -141,14 +169,19 @@ class User {
   String get initials {
     final parts = fullName.trim().split(RegExp(r'\s+'));
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return (parts.first.substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+    return (parts.first.substring(0, 1) + parts[1].substring(0, 1))
+        .toUpperCase();
   }
 
   bool get isLead => role == UserRole.admin || role == UserRole.groupLeader;
 }
 
 class Project {
-  const Project({required this.id, required this.name, required this.code, required this.color});
+  const Project(
+      {required this.id,
+      required this.name,
+      required this.code,
+      required this.color});
 
   final String id;
   final String name;
@@ -157,7 +190,11 @@ class Project {
 }
 
 class Epic {
-  const Epic({required this.id, required this.projectId, required this.name, this.orderIndex = 0});
+  const Epic(
+      {required this.id,
+      required this.projectId,
+      required this.name,
+      this.orderIndex = 0});
 
   final String id;
   final String projectId;
@@ -213,6 +250,7 @@ class Ticket {
     this.runningSince,
     this.blockedSince,
     this.prLink,
+    this.archivedAt,
     List<Subtask>? subtasks,
     List<TicketEvent>? events,
   })  : subtasks = subtasks ?? [],
@@ -236,25 +274,37 @@ class Ticket {
   DateTime? runningSince;
   DateTime? blockedSince;
   String? prLink;
+  DateTime? archivedAt;
   final List<Subtask> subtasks;
   final List<TicketEvent> events;
 
   bool get isOverdue =>
-      dueDate != null && status != TicketStatus.done && dueDate!.isBefore(DateTime.now());
+      dueDate != null &&
+      status != TicketStatus.done &&
+      dueDate!.isBefore(DateTime.now());
 
-  int get liveSpentSeconds => spentSeconds +
-      (runningSince != null ? DateTime.now().difference(runningSince!).inSeconds : 0);
+  int get liveSpentSeconds =>
+      spentSeconds +
+      (runningSince != null
+          ? DateTime.now().difference(runningSince!).inSeconds
+          : 0);
 
-  int get liveBlockedSeconds => blockedSeconds +
+  int get liveBlockedSeconds =>
+      blockedSeconds +
       (blockedSince != null
-          ? DateTime.now().difference(blockedSince!).inSeconds.clamp(0, 2147483647).toInt()
+          ? DateTime.now()
+              .difference(blockedSince!)
+              .inSeconds
+              .clamp(0, 2147483647)
+              .toInt()
           : 0);
 
   int get subtasksDone => subtasks.where((s) => s.done).length;
 }
 
 class IncidentComment {
-  const IncidentComment({required this.userId, required this.text, required this.ts});
+  const IncidentComment(
+      {required this.userId, required this.text, required this.ts});
 
   final String userId;
   final String text;
@@ -290,7 +340,8 @@ class Incident {
   final DateTime createdAt;
   final List<IncidentComment> comments;
 
-  bool get isOpen => status != IncidentStatus.resolved && status != IncidentStatus.closed;
+  bool get isOpen =>
+      status != IncidentStatus.resolved && status != IncidentStatus.closed;
 }
 
 class AppNotification {
@@ -331,6 +382,10 @@ class TicketPermissions {
     this.canEditSubtasks = false,
     this.canEdit = false,
     this.canDelete = false,
+    this.canArchive = false,
+    this.canRestore = false,
+    this.canPause = false,
+    this.canResumeTimer = false,
   });
 
   final bool canAssign;
@@ -342,9 +397,17 @@ class TicketPermissions {
   final bool canEditSubtasks;
   final bool canEdit;
   final bool canDelete;
+  final bool canArchive;
+  final bool canRestore;
+  final bool canPause;
+  final bool canResumeTimer;
 
   bool get anyWorkAction =>
-      canStart || canComplete || canQuestion || canResolveQuestion || canRedirect;
+      canStart ||
+      canComplete ||
+      canQuestion ||
+      canResolveQuestion ||
+      canRedirect;
 
   static TicketPermissions compute({
     required UserRole role,
@@ -356,7 +419,8 @@ class TicketPermissions {
     final isMine = assigneeId != null && assigneeId == userId;
     return TicketPermissions(
       canAssign: isLead && status != TicketStatus.done,
-      canStart: isMine && (status == TicketStatus.todo || status == TicketStatus.redirected),
+      canStart: isMine &&
+          (status == TicketStatus.todo || status == TicketStatus.redirected),
       canComplete: isMine && status == TicketStatus.inProgress,
       canQuestion: isMine && status == TicketStatus.inProgress,
       canResolveQuestion: (isMine || isLead) && status == TicketStatus.blocked,

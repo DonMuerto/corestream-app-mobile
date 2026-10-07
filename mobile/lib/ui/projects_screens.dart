@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme.dart';
 import '../data/repository.dart';
+import '../models/models.dart';
 import '../providers.dart';
 import 'ticket_detail_screen.dart';
 import 'ticket_sheets.dart';
@@ -41,8 +42,8 @@ class ProjectCard extends ConsumerWidget {
     final s = ref.watch(stringsProvider);
     final p = summary;
     return CsCard(
-      onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => BoardScreen(projectId: p.project.id))),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => BoardScreen(projectId: p.project.id))),
       child: Row(
         children: [
           Container(
@@ -50,10 +51,13 @@ class ProjectCard extends ConsumerWidget {
             height: 42,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: p.project.color, borderRadius: BorderRadius.circular(13)),
+                color: p.project.color,
+                borderRadius: BorderRadius.circular(13)),
             child: Text(p.project.code,
                 style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -61,17 +65,21 @@ class ProjectCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(p.project.name,
-                    style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
+                    style: const TextStyle(
+                        fontSize: 14.5, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 3),
                 Text.rich(
                   TextSpan(
                     style: TextStyle(fontSize: 12, color: c.mut),
                     children: [
-                      TextSpan(text: '${p.epicsCount} ${s('epics')} · ${p.pending} ${s('pending')}'),
+                      TextSpan(
+                          text:
+                              '${p.epicsCount} ${s('epics')} · ${p.pending} ${s('pending')}'),
                       if (p.overdue > 0)
                         TextSpan(
                             text: ' · ${p.overdue} ${s('overdue')}',
-                            style: TextStyle(color: c.red, fontWeight: FontWeight.w700)),
+                            style: TextStyle(
+                                color: c.red, fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
@@ -82,7 +90,8 @@ class ProjectCard extends ConsumerWidget {
           ),
           const SizedBox(width: 10),
           Text('${(p.progress * 100).round()}%',
-              style: TextStyle(fontSize: 12, color: c.mut, fontWeight: FontWeight.w600)),
+              style: TextStyle(
+                  fontSize: 12, color: c.mut, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -105,6 +114,15 @@ class BoardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(board.valueOrNull?.project.name ?? ''),
+        actions: [
+          if (me?.role == UserRole.admin)
+            IconButton(
+                tooltip: s('archives'),
+                icon: const Icon(Icons.archive_outlined),
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) =>
+                        ArchivedTicketsScreen(projectId: projectId))))
+        ],
       ),
       body: AsyncView<Board>(
         value: board,
@@ -126,7 +144,8 @@ class BoardScreen extends ConsumerWidget {
                           children: [
                             Text(e.epic.name,
                                 style: const TextStyle(
-                                    fontSize: 14.5, fontWeight: FontWeight.w700)),
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700)),
                             const SizedBox(height: 3),
                             Text(
                               '${e.done} ${s('of')} ${e.tickets.length} ${s('tickets')} · ${(e.progress * 100).round()}%',
@@ -146,15 +165,18 @@ class BoardScreen extends ConsumerWidget {
                             for (final t in e.tickets) ...[
                               TicketRow(
                                 t,
-                                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                                    builder: (_) => TicketDetailScreen(ticketId: t.id))),
+                                onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                        builder: (_) => TicketDetailScreen(
+                                            ticketId: t.id))),
                               ),
                               const SizedBox(height: 8),
                             ],
                             if (me != null && me.isLead)
                               OutlinedButton.icon(
-                                onPressed: () =>
-                                    showNewTicketSheet(context, ref, epic: e.epic),
+                                onPressed: () => showNewTicketSheet(
+                                    context, ref,
+                                    epic: e.epic),
                                 icon: const Icon(Icons.add, size: 18),
                                 label: Text(s('new_ticket')),
                               ),
@@ -171,5 +193,31 @@ class BoardScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class ArchivedTicketsScreen extends ConsumerWidget {
+  const ArchivedTicketsScreen({super.key, required this.projectId});
+  final String projectId;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(stringsProvider);
+    return Scaffold(
+        appBar: AppBar(title: Text(s('archives'))),
+        body: AsyncView<List<Ticket>>(
+            value: ref.watch(archivedTicketsProvider(projectId)),
+            onRetry: () => ref.invalidate(archivedTicketsProvider(projectId)),
+            builder: (tickets) => tickets.isEmpty
+                ? EmptyState(s('all_clear'))
+                : ListView(padding: const EdgeInsets.all(16), children: [
+                    for (final ticket in tickets)
+                      Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: TicketRow(ticket,
+                              onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) => TicketDetailScreen(
+                                          ticketId: ticket.id)))))
+                  ])));
   }
 }

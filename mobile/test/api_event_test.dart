@@ -12,6 +12,13 @@ Map<String, dynamic> event(String type, Map<String, dynamic>? payload,
     };
 
 void main() {
+  test('Archive and restore audit actions keep their label and message', () {
+    for (final action in ['ARCHIVED', 'RESTORED']) {
+      final parsed = parseApiTicketEvent(event('UPDATED', {'action': action, 'message': 'Auditoría $action'}));
+      expect(parsed.type, action);
+      expect(parsed.text, 'Auditoría $action');
+    }
+  });
   test('Official status transition is not displayed as TODO -> TODO', () {
     final parsed = parseApiTicketEvent(event('STATUS_CHANGED', {
       'from_status': 'TODO',
@@ -59,16 +66,20 @@ void main() {
     expect(parsed.toUserId, 'recipient-uuid');
     expect(parsed.fromStatus, TicketStatus.inProgress);
     expect(parsed.toStatus, TicketStatus.todo);
-    expect(parseApiTicketEvent(event('TICKET_ASSIGNED', {
-      'to_user_id': 'recipient-uuid',
-    })).type, 'ASSIGNED');
+    expect(
+        parseApiTicketEvent(event('TICKET_ASSIGNED', {
+          'to_user_id': 'recipient-uuid',
+        })).type,
+        'ASSIGNED');
   });
 
   test('Imported comments and events without payload remain supported', () {
-    expect(parseApiTicketEvent(event('QUESTION_RAISED', {
-      'comment': 'Pregunta importada',
-      'question_text': 'Pregunta importada',
-    })).text, 'Pregunta importada');
+    expect(
+        parseApiTicketEvent(event('QUESTION_RAISED', {
+          'comment': 'Pregunta importada',
+          'question_text': 'Pregunta importada',
+        })).text,
+        'Pregunta importada');
     final empty = parseApiTicketEvent(event('CREATED', null));
     expect(empty.type, 'CREATED');
     expect(empty.text, isNull);
@@ -76,7 +87,8 @@ void main() {
     expect(empty.toStatus, isNull);
   });
 
-  test('Descending API events become chronological for latest question lookup', () {
+  test('Descending API events become chronological for latest question lookup',
+      () {
     final parsed = parseApiTicketEvents([
       event('QUESTION_RAISED', {'question': 'La más reciente'},
           at: '2026-10-06T21:00:00Z'),
@@ -88,8 +100,13 @@ void main() {
 
   test('Blocked clock is independent of accumulated work time', () {
     final ticket = Ticket(
-      id: 'ticket', number: 0, epicId: 'epic', title: 'QA', description: '',
-      spentSeconds: 37, blockedSeconds: 20,
+      id: 'ticket',
+      number: 0,
+      epicId: 'epic',
+      title: 'QA',
+      description: '',
+      spentSeconds: 37,
+      blockedSeconds: 20,
       blockedSince: DateTime.now().subtract(const Duration(seconds: 120)),
     );
     expect(ticket.liveSpentSeconds, 37);
@@ -98,7 +115,11 @@ void main() {
 
   test('A cleared block start does not keep accumulating time', () {
     final ticket = Ticket(
-      id: 'ticket', number: 0, epicId: 'epic', title: 'QA', description: '',
+      id: 'ticket',
+      number: 0,
+      epicId: 'epic',
+      title: 'QA',
+      description: '',
       blockedSeconds: 30,
     );
     expect(ticket.liveBlockedSeconds, 30);

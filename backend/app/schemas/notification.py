@@ -7,6 +7,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
+from app.models.notification import NotificationType
+
 
 class NotificationResponse(BaseModel):
     """
@@ -30,6 +32,8 @@ class NotificationResponse(BaseModel):
     type: str
     is_read: bool
     ticket_id: Optional[UUID] = None
+    incident_id: Optional[UUID] = None
+    read_at: Optional[datetime] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -49,14 +53,7 @@ class NotificationResponse(BaseModel):
         Raises:
             ValueError: Si el tipo no es válido
         """
-        valid_types = {
-            "TICKET_ASSIGNED",
-            "STATUS_CHANGED",
-            "TICKET_REDIRECTED",
-            "TICKET_COMPLETED",
-            "QUESTION_RAISED",
-            "SYSTEM",
-        }
+        valid_types = {kind.value for kind in NotificationType}
         if v.upper() not in valid_types:
             raise ValueError(f"El tipo de notificación debe ser uno de: {', '.join(valid_types)}")
         return v.upper()

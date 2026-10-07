@@ -156,3 +156,9 @@ final unreadCountProvider = FutureProvider.autoDispose<int>((ref) {
 final usersProvider = FutureProvider.autoDispose<List<User>>((ref) {
   return ref.watch(repositoryProvider).fetchUsers();
 });
+
+final archivedTicketsProvider =
+    FutureProvider.autoDispose.family<List<Ticket>, String>((ref, projectId) {
+  ref.watch(dataRevisionProvider);
+  return ref.watch(repositoryProvider).fetchArchivedTickets(projectId);
+});

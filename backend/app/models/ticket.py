@@ -84,6 +84,10 @@ class Ticket(Base, BaseEntity):
     estimated_time_seconds: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     timer_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    archived_by_id: Mapped[PyUUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
 
     # Campos específicos de tickets de soporte (null para tickets de desarrollo)
     ticket_type: Mapped[TicketType] = mapped_column(

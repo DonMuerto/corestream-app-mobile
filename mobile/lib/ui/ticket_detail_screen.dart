@@ -20,9 +20,10 @@ class TicketDetailScreen extends ConsumerWidget {
     final detail = ref.watch(ticketDetailProvider(ticketId));
     return Scaffold(
       appBar: AppBar(
-        title: Text(detail.valueOrNull != null && detail.valueOrNull!.ticket.number > 0
-            ? 'T-${detail.valueOrNull!.ticket.number}'
-            : ''),
+        title: Text(
+            detail.valueOrNull != null && detail.valueOrNull!.ticket.number > 0
+                ? 'T-${detail.valueOrNull!.ticket.number}'
+                : ''),
       ),
       body: AsyncView<TicketDetail>(
         value: detail,
@@ -32,12 +33,34 @@ class TicketDetailScreen extends ConsumerWidget {
   }
 }
 
-class _TicketDetailBody extends ConsumerWidget {
+class _TicketDetailBody extends ConsumerStatefulWidget {
   const _TicketDetailBody(this.d);
   final TicketDetail d;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_TicketDetailBody> createState() => _TicketDetailBodyState();
+}
+
+class _TicketDetailBodyState extends ConsumerState<_TicketDetailBody> {
+  Timer? _tick;
+  @override
+  void initState() {
+    super.initState();
+    // Presentation tick only; never refresh providers or make HTTP requests.
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = widget.d;
     final c = cs(context);
     final s = ref.watch(stringsProvider);
     final lang = ref.watch(langProvider);
@@ -56,33 +79,43 @@ class _TicketDetailBody extends ConsumerWidget {
       children: [
         // breadcrumb
         Text('${d.project.name}  ›  ${d.epic.name}',
-            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: c.faint)),
+            style: TextStyle(
+                fontSize: 11.5, fontWeight: FontWeight.w600, color: c.faint)),
         const SizedBox(height: 6),
         Text(t.title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 1.3)),
+            style: const TextStyle(
+                fontSize: 20, fontWeight: FontWeight.w700, height: 1.3)),
         const SizedBox(height: 10),
         Wrap(
           spacing: 7,
           runSpacing: 6,
           children: [
             StatusChip(t.status),
+            if (t.archivedAt != null)
+              CsChip(label: s('archived'), color: c.gray, dot: false),
             CsChip(
               label: s('p_${t.priority.wire}'),
               color: priorityColor(context, t.priority),
             ),
-            if (t.isOverdue) CsChip(label: '⚠ ${s('overdue')}', color: c.red, dot: false),
+            if (t.isOverdue)
+              CsChip(label: '⚠ ${s('overdue')}', color: c.red, dot: false),
           ],
         ),
         const SizedBox(height: 12),
 
-        if (t.status == TicketStatus.inProgress || t.status == TicketStatus.blocked)
+        if (t.archivedAt == null &&
+            (t.status == TicketStatus.inProgress ||
+                t.status == TicketStatus.blocked))
           _TimerCard(ticket: t),
 
         if (t.status == TicketStatus.blocked && lastQuestion != null) ...[
           const SizedBox(height: 10),
           _QuoteBox(
             text: lastQuestion.text ?? '',
-            author: ref.watch(repositoryProvider).userById(lastQuestion.userId)?.fullName,
+            author: ref
+                .watch(repositoryProvider)
+                .userById(lastQuestion.userId)
+                ?.fullName,
             color: c.amber,
           ),
         ],
@@ -109,25 +142,28 @@ class _TicketDetailBody extends ConsumerWidget {
               _Kv(s('due'),
                   value: t.dueDate == null ? '—' : shortDate(lang, t.dueDate!),
                   valueColor: t.isOverdue ? c.red : null),
-              _Kv(s('time_spent'), value: fmtDuration(t.liveSpentSeconds)),
-              if (t.blockedSeconds > 0)
+              _Kv(s('time_spent'), value: fmtTimer(t.liveSpentSeconds)),
+              if (t.liveBlockedSeconds > 0)
                 _Kv(s('time_blocked'),
-                    value: fmtDuration(t.blockedSeconds), valueColor: c.amber),
+                    value: fmtTimer(t.liveBlockedSeconds), valueColor: c.amber),
               if (t.prLink != null)
                 _Kv('PR',
-                    value: t.prLink!.replaceFirst('https://', ''), valueColor: c.acc),
+                    value: t.prLink!.replaceFirst('https://', ''),
+                    valueColor: c.acc),
             ],
           ),
         ),
 
         SectionLabel(s('description')),
         CsCard(
-          child: Text(t.description,
+          child: Text(
+              t.description.isEmpty ? s('empty_description') : t.description,
               style: TextStyle(fontSize: 13.5, height: 1.55, color: c.mut)),
         ),
 
-        if (t.subtasks.isNotEmpty) ...[
-          SectionLabel('${s('subtasks')} · ${t.subtasksDone}/${t.subtasks.length}'),
+        if (t.subtasks.isNotEmpty || p.canEditSubtasks) ...[
+          SectionLabel(
+              '${s('subtasks')} · ${t.subtasksDone}/${t.subtasks.length}'),
           CsCard(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             child: Column(
@@ -139,15 +175,19 @@ class _TicketDetailBody extends ConsumerWidget {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                     value: sub.done,
                     onChanged: p.canEditSubtasks
-                        ? (v) => ref
-                            .read(repositoryProvider)
-                            .toggleSubtask(t.id, sub.id, v ?? false)
+                        ? (v) => runTicketAction(
+                            context,
+                            ref,
+                            () => ref
+                                .read(repositoryProvider)
+                                .toggleSubtask(t.id, sub.id, v ?? false))
                         : null,
                     title: Text(
                       sub.title,
                       style: TextStyle(
                         fontSize: 13.5,
-                        decoration: sub.done ? TextDecoration.lineThrough : null,
+                        decoration:
+                            sub.done ? TextDecoration.lineThrough : null,
                         color: sub.done ? c.faint : c.ink,
                       ),
                     ),
@@ -169,6 +209,11 @@ class _TicketDetailBody extends ConsumerWidget {
         ],
 
         const SizedBox(height: 18),
+        if (p.canEditSubtasks)
+          TextButton.icon(
+              onPressed: () => showSubtaskSheet(context, ref, t),
+              icon: const Icon(Icons.add),
+              label: Text(s('new_subtask'))),
         _Actions(detail: d),
       ],
     );
@@ -191,6 +236,38 @@ class _Actions extends ConsumerWidget {
 
     final children = <Widget>[];
 
+    if (p.canPause || p.canResumeTimer) {
+      children.add(OutlinedButton.icon(
+        icon: Icon(p.canPause ? Icons.pause : Icons.play_arrow),
+        label: Text(s(p.canPause ? 'pause_work' : 'resume_work')),
+        onPressed: () => runTicketAction(
+            context,
+            ref,
+            () => p.canPause
+                ? repo.pauseTicket(t.id)
+                : repo.resumeTicketTimer(t.id)),
+      ));
+    }
+    if (p.canEdit && t.archivedAt == null) {
+      children.add(OutlinedButton.icon(
+          icon: const Icon(Icons.drive_file_move_outline),
+          label: Text(s('move_ticket')),
+          onPressed: () => showMoveSheet(context, ref, detail)));
+    }
+    if (p.canArchive) {
+      children.add(OutlinedButton.icon(
+          icon: const Icon(Icons.archive_outlined),
+          label: Text(s('archive')),
+          onPressed: () => showArchiveConfirmation(context, ref, t)));
+    }
+    if (p.canRestore) {
+      children.add(FilledButton.icon(
+          icon: const Icon(Icons.unarchive_outlined),
+          label: Text(s('restore')),
+          onPressed: () =>
+              runTicketAction(context, ref, () => repo.restoreTicket(t.id))));
+    }
+
     if (p.canAssign) {
       children.add(FilledButton.icon(
         icon: const Icon(Icons.people_outline),
@@ -202,7 +279,8 @@ class _Actions extends ConsumerWidget {
       children.add(FilledButton.icon(
         icon: const Icon(Icons.play_arrow),
         label: Text(s('start')),
-        onPressed: () => repo.startTicket(t.id),
+        onPressed: () =>
+            runTicketAction(context, ref, () => repo.startTicket(t.id)),
       ));
     }
     if (p.canComplete) {
@@ -282,7 +360,8 @@ class _TimerCardState extends ConsumerState<_TimerCard> {
     super.initState();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted &&
-          (widget.ticket.runningSince != null || widget.ticket.blockedSince != null)) {
+          (widget.ticket.runningSince != null ||
+              widget.ticket.blockedSince != null)) {
         setState(() {});
       }
     });
@@ -314,10 +393,17 @@ class _TimerCardState extends ConsumerState<_TimerCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(blocked ? s('blocked_waiting') : s('time_spent'),
+                Text(
+                    blocked
+                        ? s('blocked_waiting')
+                        : t.runningSince == null
+                            ? s('work_paused')
+                            : s('time_spent'),
                     style: TextStyle(fontSize: 11.5, color: c.mut)),
                 const SizedBox(height: 2),
-                Text(fmtTimer(blocked ? t.liveBlockedSeconds : t.liveSpentSeconds),
+                Text(
+                    fmtTimer(
+                        blocked ? t.liveBlockedSeconds : t.liveSpentSeconds),
                     style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w700,
@@ -326,7 +412,8 @@ class _TimerCardState extends ConsumerState<_TimerCard> {
               ],
             ),
           ),
-          Icon(blocked ? Icons.pause_circle_outline : Icons.timer_outlined, color: color),
+          Icon(blocked ? Icons.pause_circle_outline : Icons.timer_outlined,
+              color: color),
         ],
       ),
     );
@@ -419,6 +506,17 @@ class _EventRow extends ConsumerWidget {
           '${s('ev_redirected_to')} ${repo.userById(event.toUserId)?.fullName ?? ''}'
         ),
       'COMPLETED' => (Icons.celebration_outlined, c.green, s('n_COMPLETION')),
+      'ARCHIVED' => (Icons.archive_outlined, c.gray, s('ev_archived')),
+      'RESTORED' => (Icons.unarchive_outlined, c.green, s('ev_restored')),
+      'TIMER_START' => (Icons.play_arrow, c.green, s('ev_timer_start')),
+      'TIMER_PAUSE' => (Icons.pause, c.amber, s('ev_timer_pause')),
+      'MOVED' => (Icons.drive_file_move_outline, c.acc, s('ev_moved')),
+      'SUBTASK_CREATED' => (Icons.add_task, c.acc, s('ev_subtask_created')),
+      'SUBTASK_COMPLETED' => (
+          Icons.task_alt,
+          c.green,
+          s('ev_subtask_completed')
+        ),
       _ => (Icons.chat_bubble_outline, c.gray, ''),
     };
 

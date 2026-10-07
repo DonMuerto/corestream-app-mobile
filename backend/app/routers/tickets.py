@@ -82,7 +82,7 @@ async def _publish_ticket_status(ticket_id: UUID | str, new_status: str) -> None
         pass
 
 
-async def _get_ticket_with_relations(db: AsyncSession, ticket_id: UUID) -> Ticket:
+async def _get_ticket_with_relations(db: AsyncSession, ticket_id: UUID, *, include_archived: bool = False) -> Ticket:
     """
     Recarga un ticket con todas las relaciones que TicketResponse serializa.
 
@@ -95,6 +95,7 @@ async def _get_ticket_with_relations(db: AsyncSession, ticket_id: UUID) -> Ticke
     """
     result = await db.execute(
         select(Ticket)
+        .execution_options(include_archived=include_archived)
         .where(Ticket.id == ticket_id)
         .options(
             selectinload(Ticket.assignee).selectinload(User.role),
@@ -116,6 +117,7 @@ async def list_tickets(
     application_id: Optional[UUID] = Query(None),
     unassigned: Optional[bool] = Query(None),
     assignee_id: Optional[UUID] = Query(None),
+    archived: bool = Query(False),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
@@ -127,6 +129,10 @@ async def list_tickets(
         selectinload(Ticket.epic).selectinload(Epic.application),
         selectinload(Ticket.subtasks),
     )
+    if archived:
+        if not is_admin_or_leader(current_user):
+            raise HTTPException(status_code=403, detail="Se requiere rol ADMIN o TEAM_LEADER")
+        query = query.execution_options(include_archived=True).where(Ticket.archived_at.is_not(None))
     if application_id is not None:
         query = query.join(Epic, Ticket.epic_id == Epic.id).where(
             Epic.application_id == application_id
@@ -525,11 +531,94 @@ async def update_ticket(
     return ticket_final
 
 
+async def _set_ticket_archived(ticket_id: UUID, current_user: User, db: AsyncSession, archived: bool) -> Ticket:
+    result = await db.execute(
+        select(Ticket).where(Ticket.id == ticket_id)
+        .execution_options(include_archived=True).with_for_update()
+    )
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    if (ticket.archived_at is not None) == archived:
+        return await _get_ticket_with_relations(db, ticket_id, include_archived=True)
+    now = datetime.now(timezone.utc)
+    if archived:
+        await timer_service.pause_timer(ticket_id, db)
+        timer_service.finish_blocked_period(ticket, now)
+        ticket.archived_at = now
+        ticket.archived_by_id = current_user.id
+    else:
+        ticket.archived_at = None
+        ticket.archived_by_id = None
+        if ticket.status in (TicketStatus.BLOCKED, TicketStatus.BLOCKED_QUESTION):
+            timer_service.begin_blocked_period(ticket, now)
+        # A restored work timer stays paused until its assignee resumes it.
+    db.add(TicketEvent(
+        ticket_id=ticket_id, user_id=current_user.id, event_type=TicketEventType.UPDATED,
+        detail={"action": "ARCHIVED" if archived else "RESTORED",
+                "message": "Ticket archivado" if archived else "Ticket restaurado",
+                "time_spent_seconds": ticket.time_spent_seconds,
+                "blocked_time_seconds": ticket.blocked_time_seconds},
+    ))
+    await db.commit()
+    await _publish_ticket_status(ticket_id, ticket.status.value)
+    return await _get_ticket_with_relations(db, ticket_id, include_archived=True)
+
+
+@router.post("/{ticket_id}/archive", response_model=TicketResponse)
+async def archive_ticket(
+    ticket_id: UUID,
+    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _set_ticket_archived(ticket_id, current_user, db, True)
+
+
+@router.post("/{ticket_id}/restore", response_model=TicketResponse)
+async def restore_ticket(
+    ticket_id: UUID,
+    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _set_ticket_archived(ticket_id, current_user, db, False)
+
+
+@router.post("/{ticket_id}/timer/{action}", response_model=TicketResponse)
+async def control_work_timer(
+    ticket_id: UUID, action: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    require_non_admin(current_user)
+    if action not in ("pause", "resume"):
+        raise HTTPException(status_code=404, detail="Acción de tiempo no encontrada")
+    ticket = (await db.execute(select(Ticket).where(Ticket.id == ticket_id).with_for_update())).scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    assert_is_current_assignee(ticket, current_user)
+    if ticket.status != TicketStatus.IN_PROGRESS:
+        raise HTTPException(status_code=409, detail="Solo se pausa/reanuda trabajo en progreso; un bloqueo lo resuelve el líder")
+    running = ticket.timer_started_at is not None
+    if running == (action == "resume"):
+        return await _get_ticket_with_relations(db, ticket_id)
+    if action == "pause":
+        await timer_service.pause_timer(ticket_id, db)
+    else:
+        ticket.timer_started_at = datetime.now(timezone.utc)
+    db.add(TicketEvent(ticket_id=ticket_id, user_id=current_user.id,
+                       event_type=TicketEventType.TIMER_PAUSE if action == "pause" else TicketEventType.TIMER_START,
+                       detail={"action": action, "time_spent_seconds": ticket.time_spent_seconds,
+                               "message": "Trabajo pausado" if action == "pause" else "Trabajo reanudado"}))
+    await db.commit()
+    await _publish_ticket_status(ticket_id, ticket.status.value)
+    return await _get_ticket_with_relations(db, ticket_id)
+
+
 @router.delete(
     "/{ticket_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar ticket",
-    description="Elimina un ticket del sistema de forma permanente"
+    summary="Archivar ticket (compatible con clientes anteriores)",
+    description="Archiva sin borrar subtareas ni historial; usar /restore para recuperarlo"
 )
 async def delete_ticket(
     ticket_id: UUID,
@@ -537,49 +626,20 @@ async def delete_ticket(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Elimina un ticket del sistema.
+    Archiva un ticket sin borrar su fila, subtareas, eventos o documentos.
 
-    Solo ADMIN. Antes cualquier autenticado podía borrar cualquier ticket —
-    verificado en la auditoría: un DEVELOPER lograba un 204 sobre un ticket
-    ajeno, con borrado permanente en cascada de subtareas, eventos y
-    documentos; se acotó primero a ADMIN/TEAM_LEADER (plan fase 4).
-
-    Later narrowed to ADMIN only, so TEAM_LEADER can manage (create/edit/
-    reassign) but not permanently delete work.
+    Solo ADMIN. La ruta DELETE se conserva por compatibilidad; comparte
+    el archivado idempotente de /archive y se revierte mediante /restore.
 
     Args:
-        ticket_id (int): ID del ticket a eliminar
+        ticket_id (UUID): ID del ticket a archivar
         current_user (User): Usuario autenticado con rol ADMIN
         db (AsyncSession): Sesión asíncrona de base de datos
 
     Raises:
-        HTTPException: Si el ticket no existe (404) o hay error en eliminación (400)
+        HTTPException: Si el ticket no existe (404)
     """
-    result = await db.execute(
-        select(Ticket).where(Ticket.id == ticket_id)
-    )
-    ticket = result.scalar_one_or_none()
-
-    if not ticket:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Ticket con ID {ticket_id} no encontrado"
-        )
-
-    try:
-        # Detener temporizador si está activo
-        await timer_service.stop_timer(ticket_id, db)
-
-        # Eliminar ticket y sus relaciones en cascada
-        await db.delete(ticket)
-        await db.commit()
-
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error al eliminar ticket: {str(e)}"
-        )
+    await _set_ticket_archived(ticket_id, current_user, db, True)
 
 
 @router.patch(

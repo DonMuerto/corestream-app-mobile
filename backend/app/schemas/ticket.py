@@ -311,6 +311,8 @@ class TicketResponse(BaseModel):
     # Fechas
     created_at: datetime
     completed_at: Optional[datetime] = None
+    archived_at: Optional[datetime] = None
+    archived_by_id: Optional[UUID] = None
     # Contexto extra
     epic_title: Optional[str] = None
     app_name: Optional[str] = None
@@ -432,4 +434,3 @@ class TicketEventResponse(BaseModel):
     user: Optional[UserResponse] = None
 
     model_config = {"from_attributes": True}
-    

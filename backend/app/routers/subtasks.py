@@ -75,7 +75,9 @@ async def create_subtask(
         HTTPException: Si el ticket no existe (404) o hay error en creación (400)
     """
     # ticket_id comes from path; body ticket_id is optional for backwards compat
-    resolved_ticket_id = subtask_data.ticket_id or ticket_id
+    if subtask_data.ticket_id is not None and subtask_data.ticket_id != ticket_id:
+        raise HTTPException(status_code=400, detail="El ticket del cuerpo no coincide con la ruta")
+    resolved_ticket_id = ticket_id
 
     # Verificar que el ticket existe
     ticket_check = await db.execute(
